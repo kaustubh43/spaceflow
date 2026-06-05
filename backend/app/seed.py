@@ -9,6 +9,7 @@ from app.core.security import hash_password
 from app.db.session import SessionLocal
 from app.models import (
     CatalogItem,
+    CostItem,
     Element,
     ElementKind,
     Floor,
@@ -20,6 +21,15 @@ from app.models import (
     UserRole,
 )
 from app.seed_data import CATALOG
+
+
+def _opening(fid, kind, name, x, y, w, color, rot=0, props=None):
+    """A door or window placed on a wall (rot=90 for walls running vertically)."""
+    return Element(
+        floor_id=fid, kind=kind, layer=LayerType.architecture, name=name,
+        x=x, y=y, width_cm=w, depth_cm=12, height_cm=210 if kind == ElementKind.door else 120,
+        rotation_deg=rot, color=color, properties=props or {},
+    )
 
 
 def seed_catalog(db) -> dict[str, CatalogItem]:
@@ -99,7 +109,7 @@ def seed_demo(db, catalog: dict[str, CatalogItem]) -> None:
     project.memberships.append(ProjectMembership(user=designer, role=MembershipRole.owner))
     # client can comment and tweak items flagged client-editable
     project.memberships.append(ProjectMembership(user=client, role=MembershipRole.contributor))
-    floor = Floor(name="Ground Floor", level=0, width_cm=1200, height_cm=1000, wall_height_cm=290)
+    floor = Floor(name="Ground Floor", level=0, width_cm=1320, height_cm=1000, wall_height_cm=290)
     project.floors.append(floor)
     db.add(project)
     db.commit()
@@ -134,6 +144,33 @@ def seed_demo(db, catalog: dict[str, CatalogItem]) -> None:
         els.append(Element(floor_id=fid, kind=ElementKind.room, layer=LayerType.architecture,
                            name=rname, points=pts, color="#e2e8f0"))
 
+    # balcony off the master bedroom — a room with a height renders as a 3D railing
+    els.append(Element(floor_id=fid, kind=ElementKind.room, layer=LayerType.architecture,
+                       name="Balcony", points=[1150, 90, 1300, 90, 1300, 470, 1150, 470],
+                       color="#dbeafe", properties={"wall_height": 100}))
+
+    # --- Doors (open by default for clean walkthroughs) ---
+    DOOR = ElementKind.door
+    els.append(_opening(fid, DOOR, "Main Entrance", 200, 940, 100, "#b45309",
+                        rot=0, props={"swing": "left", "open_angle": 90}))
+    els.append(_opening(fid, DOOR, "Master Bedroom Door", 660, 280, 90, "#b45309",
+                        rot=90, props={"swing": "left", "open_angle": 90}))
+    els.append(_opening(fid, DOOR, "Bedroom 2 Door", 660, 720, 90, "#b45309",
+                        rot=90, props={"swing": "right", "open_angle": 90}))
+    els.append(_opening(fid, DOOR, "Bathroom Door", 320, 800, 80, "#b45309",
+                        rot=90, props={"swing": "left", "open_angle": 80}))
+    els.append(_opening(fid, DOOR, "Balcony Door", 1140, 280, 90, "#b45309",
+                        rot=90, props={"swing": "right", "open_angle": 90}))
+
+    # --- Windows (sill height drives 3D placement) ---
+    WIN = ElementKind.window
+    els.append(_opening(fid, WIN, "Living Window", 60, 320, 150, "#7dd3fc",
+                        rot=90, props={"sill_cm": 90}))
+    els.append(_opening(fid, WIN, "Master Window", 900, 60, 150, "#7dd3fc",
+                        rot=0, props={"sill_cm": 90}))
+    els.append(_opening(fid, WIN, "Bedroom 2 Window", 1140, 720, 140, "#7dd3fc",
+                        rot=90, props={"sill_cm": 90}))
+
     c = catalog
     # --- Furniture ---
     els.append(_place(fid, c["Sofa (3-seat)"], 120, 120, client_editable=True))
@@ -147,7 +184,9 @@ def seed_demo(db, catalog: dict[str, CatalogItem]) -> None:
     els.append(_place(fid, c["Study Desk"], 980, 560))
 
     # --- Appliances ---
-    els.append(_place(fid, c["Refrigerator"], 560, 720))
+    # the client already owns the fridge — shown on the plan but not charged
+    els.append(_place(fid, c["Refrigerator"], 560, 720, props=None))
+    els[-1].is_existing = True
     els.append(_place(fid, c["Television"], 130, 300))
     els.append(_place(fid, c["Split AC Indoor"], 800, 75))
 
@@ -178,8 +217,20 @@ def seed_demo(db, catalog: dict[str, CatalogItem]) -> None:
     els.append(_place(fid, c["Router / AP"], 620, 120))
 
     db.add_all(els)
+
+    # --- Bill-of-materials work lines (costs without a drawn object) ---
+    work = [
+        ("Civil work — masonry & plaster", "Civil Work", 1, "job", 120000),
+        ("Labour — installation & fit-out", "Labour", 1, "job", 60000),
+        ("Painting — whole house", "Painting", 1, "job", 45000),
+        ("False ceiling — living & bedrooms", "False Ceiling", 38, "sqm", 1400),
+    ]
+    for i, (label, cat, qty, unit, cost) in enumerate(work):
+        db.add(CostItem(project_id=project.id, label=label, category=cat,
+                        quantity=qty, unit=unit, unit_cost=cost, sort_order=i))
+
     db.commit()
-    print(f"   seeded demo project '{project.name}' with {len(els)} elements")
+    print(f"   seeded demo project '{project.name}' with {len(els)} elements + {len(work)} cost lines")
 
 
 def main() -> None:

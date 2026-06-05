@@ -82,6 +82,10 @@ A **Project** has **Floors**; each Floor has **Elements**. An Element is a gener
 placed object (`kind` + `layer` + geometry + free‑form `properties`), which keeps
 the layer system fully extensible — adding a new layer is one enum entry.
 
+## For contributors / agents
+- **[.github/context.md](.github/context.md)** — architecture, data model, conventions & gotchas (read this first).
+- **[plan.md](plan.md)** — roadmap, known limitations, and what's next.
+
 ## Development notes
 
 - Both containers run with hot reload (uvicorn `--reload`, Vite HMR) and bind‑mount
