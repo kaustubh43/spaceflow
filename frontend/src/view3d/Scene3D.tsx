@@ -3,10 +3,30 @@ import { Canvas } from "@react-three/fiber";
 import { FirstPersonControls, Grid, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { useEditor } from "@/store/editor";
+import { useCatalog } from "@/api/hooks";
 import type { ElementModel, Floor } from "@/types";
 import { layerColor } from "@/layers/config";
 import { plasterTexture, woodFloorTexture } from "./textures";
+import {
+  CEILING_MODELS,
+  FurnitureModel,
+  WALL_MODELS,
+} from "./FurnitureModels";
 import { Eye, Orbit } from "lucide-react";
+
+// catalog icon -> furniture model key
+const ICON_MODEL: Record<string, string> = {
+  sofa: "sofa", chair: "chair", table: "table", bed: "bed", desk: "desk",
+  shelf: "cabinet", wardrobe: "cabinet", counter: "counter", tv: "tv",
+  fridge: "fridge", washer: "appliance_round", dishwasher: "appliance_round",
+  wc: "wc", basin: "basin", shower: "shower", sink: "sink",
+  light: "ceiling_light", spot: "ceiling_light", pendant: "pendant",
+  ac: "ac", fan: "fan",
+};
+const KIND_MODEL: Record<string, string> = {
+  light: "ceiling_light",
+  hvac_unit: "ac",
+};
 
 const M = 0.01; // cm -> metres
 
@@ -61,7 +81,15 @@ function Walls({ floor, els }: { floor: Floor; els: ElementModel[] }) {
   );
 }
 
-function Items({ els, center }: { els: ElementModel[]; center: [number, number] }) {
+function Items({
+  els,
+  iconOf,
+  ceilingY,
+}: {
+  els: ElementModel[];
+  iconOf: (el: ElementModel) => string;
+  ceilingY: number;
+}) {
   return (
     <>
       {els.map((el) => {
@@ -70,16 +98,23 @@ function Items({ els, center }: { els: ElementModel[]; center: [number, number] 
         const w = el.width_cm * M;
         const d = el.depth_cm * M;
         const hh = Math.max(el.height_cm * M, 0.05);
+        const model =
+          ICON_MODEL[iconOf(el)] || KIND_MODEL[el.kind] || "box";
+        const color = el.color || layerColor(el.layer);
+
+        // vertical placement: ceiling-mounted, wall-mounted, or on the floor
+        let y = 0;
+        if (CEILING_MODELS.has(model)) y = ceilingY - 0.05;
+        else if (WALL_MODELS.has(model)) y = ceilingY * 0.78;
+
         return (
-          <mesh
+          <group
             key={el.id}
-            position={[el.x * M, hh / 2, el.y * M]}
+            position={[el.x * M, y, el.y * M]}
             rotation={[0, -(el.rotation_deg * Math.PI) / 180, 0]}
-            castShadow
           >
-            <boxGeometry args={[w, hh, d]} />
-            <meshStandardMaterial color={el.color || layerColor(el.layer)} />
-          </mesh>
+            <FurnitureModel model={model} w={w} d={d} h={hh} color={color} />
+          </group>
         );
       })}
     </>
@@ -88,8 +123,17 @@ function Items({ els, center }: { els: ElementModel[]; center: [number, number] 
 
 export function Scene3D({ floor }: Props) {
   const { elements, order, visibleLayers } = useEditor();
+  const { data: catalog } = useCatalog();
   const [mode, setMode] = useState<"orbit" | "walk">("orbit");
   const floorTex = useMemo(() => woodFloorTexture(), []);
+
+  const iconMap = useMemo(() => {
+    const m: Record<number, string> = {};
+    for (const c of catalog || []) m[c.id] = c.icon || "";
+    return m;
+  }, [catalog]);
+  const iconOf = (el: ElementModel) =>
+    el.catalog_item_id ? iconMap[el.catalog_item_id] || "" : "";
 
   const els = order
     .map((id) => elements[id])
@@ -97,6 +141,7 @@ export function Scene3D({ floor }: Props) {
 
   const fw = floor.width_cm * M;
   const fh = floor.height_cm * M;
+  const ceilingY = floor.wall_height_cm * M;
   const center: [number, number] = [fw / 2, fh / 2];
 
   useMemo(() => {
@@ -133,7 +178,7 @@ export function Scene3D({ floor }: Props) {
               />
             </mesh>
             <Walls floor={floor} els={els} />
-            <Items els={els} center={center} />
+            <Items els={els} iconOf={iconOf} ceilingY={ceilingY} />
           </group>
         </Suspense>
 
