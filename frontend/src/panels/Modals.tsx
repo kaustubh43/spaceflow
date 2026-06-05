@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   useAddMember,
   useBOM,
+  useCatalog,
   useCostItems,
   useCreateCostItem,
   useCreateSnapshot,
@@ -76,7 +77,7 @@ export function BOMModal({
   onClose: () => void;
 }) {
   const { data } = useBOM(projectId);
-  const { data: costItems } = useCostItems(projectId);
+  const { data: catalog } = useCatalog();
   const money = useMoney();
   const createCost = useCreateCostItem(projectId);
   const updateCost = useUpdateCostItem(projectId);
@@ -89,208 +90,221 @@ export function BOMModal({
     unit: "item",
     unit_cost: 0,
   });
+  const [catalogPick, setCatalogPick] = useState("");
 
-  const itemLines = (data?.lines || []).filter((l) => l.source === "item" && !l.is_existing);
-  const existingLines = (data?.lines || []).filter((l) => l.source === "item" && l.is_existing);
+  const lines = data?.lines || [];
+  const charged = lines.filter((l) => !l.is_existing);
+  const existingLines = lines.filter((l) => l.is_existing);
+
+  // group charged lines (placed items + manual costs) by category
+  const groups: Record<string, typeof charged> = {};
+  for (const l of charged) (groups[l.category] ??= []).push(l);
+  const categories = Object.keys(groups).sort();
+
+  const addFromCatalog = async () => {
+    const item = catalog?.find((c) => String(c.id) === catalogPick);
+    if (!item) return;
+    await createCost.mutateAsync({
+      label: item.name,
+      category: item.category,
+      quantity: 1,
+      unit: "item",
+      unit_cost: item.unit_cost,
+    });
+    setCatalogPick("");
+  };
 
   return (
     <Shell title="Bill of Materials & Estimate" onClose={onClose} wide>
-      {/* Placed items (charged) */}
-      <h3 className="panel-title mb-2">Items on the plan (charged)</h3>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-app text-left text-ink-500">
-            <th className="py-2">Item</th>
-            <th>Layer</th>
-            <th className="text-right">Qty</th>
-            <th className="text-right">Unit cost</th>
-            <th className="text-right">Total</th>
-            {canEdit && <th></th>}
-          </tr>
-        </thead>
-        <tbody>
-          {itemLines.map((l) => (
-            <tr key={`i${l.ref_id}`} className="border-b border-app/60">
-              <td className="py-1.5">{l.name}</td>
-              <td>
-                {l.layer && (
-                  <span style={{ color: LAYER_MAP[l.layer].color }}>
-                    {LAYER_MAP[l.layer].label}
-                  </span>
-                )}
-              </td>
-              <td className="text-right">{l.quantity}</td>
-              <td className="text-right">
-                {canEdit ? (
-                  <input
-                    type="number"
-                    className="input w-24 py-1 text-right"
-                    defaultValue={Math.round(l.unit_cost)}
-                    onBlur={(e) =>
-                      override.mutate({
-                        catalog_item_id: l.ref_id!,
-                        unit_cost: Number(e.target.value),
-                      })
-                    }
-                  />
-                ) : (
-                  money(l.unit_cost)
-                )}
-              </td>
-              <td className="text-right font-medium">{money(l.total_cost)}</td>
-              {canEdit && (
-                <td className="text-right">
-                  <button
-                    title="Move to existing (don't charge)"
-                    className="text-teal-500 hover:text-teal-600"
-                    onClick={() =>
-                      override.mutate({ catalog_item_id: l.ref_id!, is_existing: true })
-                    }
-                  >
-                    <PackageCheck className="h-4 w-4" />
-                  </button>
-                </td>
-              )}
-            </tr>
-          ))}
-          {itemLines.length === 0 && (
-            <tr>
-              <td colSpan={6} className="py-2 text-ink-400">
-                No charged items placed yet.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+      <p className="mb-3 text-sm text-ink-500">
+        Items placed on the plan are costed automatically. You can also add items
+        and work below without drawing them. Everything is grouped by category.
+      </p>
 
-      {/* Manual cost lines */}
-      <h3 className="panel-title mb-2 mt-6">Work & other costs</h3>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-app text-left text-ink-500">
-            <th className="py-2">Description</th>
-            <th>Category</th>
-            <th className="text-right">Qty</th>
-            <th className="text-right">Unit cost</th>
-            <th className="text-right">Total</th>
-            {canEdit && <th></th>}
-          </tr>
-        </thead>
-        <tbody>
-          {(costItems || []).map((ci) => (
-            <tr key={ci.id} className="border-b border-app/60">
-              <td className="py-1.5">
-                {canEdit ? (
-                  <input
-                    className="input py-1"
-                    defaultValue={ci.label}
-                    onBlur={(e) =>
-                      updateCost.mutate({ id: ci.id, body: { label: e.target.value } })
-                    }
-                  />
-                ) : (
-                  ci.label
-                )}
-              </td>
-              <td>
-                {canEdit ? (
-                  <select
-                    className="input w-32 py-1"
-                    defaultValue={ci.category}
-                    onChange={(e) =>
-                      updateCost.mutate({ id: ci.id, body: { category: e.target.value } })
-                    }
-                  >
-                    {COST_CATEGORIES.map((c) => (
-                      <option key={c}>{c}</option>
-                    ))}
-                  </select>
-                ) : (
-                  ci.category
-                )}
-              </td>
-              <td className="text-right">
-                {canEdit ? (
-                  <input
-                    type="number"
-                    className="input w-16 py-1 text-right"
-                    defaultValue={ci.quantity}
-                    onBlur={(e) =>
-                      updateCost.mutate({ id: ci.id, body: { quantity: Number(e.target.value) } })
-                    }
-                  />
-                ) : (
-                  ci.quantity
-                )}
-              </td>
-              <td className="text-right">
-                {canEdit ? (
-                  <input
-                    type="number"
-                    className="input w-24 py-1 text-right"
-                    defaultValue={ci.unit_cost}
-                    onBlur={(e) =>
-                      updateCost.mutate({ id: ci.id, body: { unit_cost: Number(e.target.value) } })
-                    }
-                  />
-                ) : (
-                  money(ci.unit_cost)
-                )}
-              </td>
-              <td className="text-right font-medium">{money(ci.quantity * ci.unit_cost)}</td>
-              {canEdit && (
-                <td className="text-right">
-                  <button className="text-red-400" onClick={() => deleteCost.mutate(ci.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {categories.length === 0 && (
+        <p className="text-ink-400">Nothing costed yet — add items below.</p>
+      )}
 
+      {categories.map((cat) => {
+        const rows = groups[cat];
+        const subtotal = rows.reduce((a, r) => a + r.total_cost, 0);
+        return (
+          <div key={cat} className="mb-5">
+            <div className="mb-1 flex items-center justify-between border-b border-app pb-1">
+              <h3 className="text-sm font-semibold">{cat}</h3>
+              <span className="text-sm font-medium text-ink-500">
+                {money(subtotal)}
+              </span>
+            </div>
+            <table className="w-full text-sm">
+              <tbody>
+                {rows.map((l) => (
+                  <tr
+                    key={`${l.source}-${l.ref_id}`}
+                    className="border-b border-app/50"
+                  >
+                    <td className="py-1.5">
+                      {l.source === "manual" && canEdit ? (
+                        <input
+                          className="input py-1"
+                          defaultValue={l.name}
+                          onBlur={(e) =>
+                            updateCost.mutate({
+                              id: l.ref_id!,
+                              body: { label: e.target.value },
+                            })
+                          }
+                        />
+                      ) : (
+                        <span>
+                          {l.name}
+                          {l.source === "item" && (
+                            <span className="ml-1 text-xs text-ink-400">(on plan)</span>
+                          )}
+                        </span>
+                      )}
+                    </td>
+                    <td className="w-16 text-right">
+                      {l.source === "manual" && canEdit ? (
+                        <input
+                          type="number"
+                          className="input w-14 py-1 text-right"
+                          defaultValue={l.quantity}
+                          onBlur={(e) =>
+                            updateCost.mutate({
+                              id: l.ref_id!,
+                              body: { quantity: Number(e.target.value) },
+                            })
+                          }
+                        />
+                      ) : (
+                        `${l.quantity}×`
+                      )}
+                    </td>
+                    <td className="w-28 text-right">
+                      {canEdit ? (
+                        <input
+                          type="number"
+                          className="input w-24 py-1 text-right"
+                          defaultValue={Math.round(l.unit_cost)}
+                          onBlur={(e) => {
+                            const v = Number(e.target.value);
+                            if (l.source === "manual")
+                              updateCost.mutate({ id: l.ref_id!, body: { unit_cost: v } });
+                            else
+                              override.mutate({ catalog_item_id: l.ref_id!, unit_cost: v });
+                          }}
+                        />
+                      ) : (
+                        money(l.unit_cost)
+                      )}
+                    </td>
+                    <td className="w-28 text-right font-medium">{money(l.total_cost)}</td>
+                    {canEdit && (
+                      <td className="w-8 text-right">
+                        {l.source === "manual" ? (
+                          <button
+                            className="text-red-400"
+                            title="Remove"
+                            onClick={() => deleteCost.mutate(l.ref_id!)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        ) : (
+                          <button
+                            className="text-teal-500 hover:text-teal-600"
+                            title="Mark as existing (don't charge)"
+                            onClick={() =>
+                              override.mutate({
+                                catalog_item_id: l.ref_id!,
+                                is_existing: true,
+                              })
+                            }
+                          >
+                            <PackageCheck className="h-4 w-4" />
+                          </button>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
+
+      {/* Add rows */}
       {canEdit && (
-        <div className="mt-2 flex flex-wrap items-end gap-2 rounded-lg border border-app bg-ink-50 p-2 dark:bg-slate-800/50">
-          <input
-            className="input flex-1"
-            placeholder="Add a cost (e.g. Civil work — wall demolition)"
-            value={draft.label}
-            onChange={(e) => setDraft({ ...draft, label: e.target.value })}
-          />
-          <select
-            className="input w-32"
-            value={draft.category}
-            onChange={(e) => setDraft({ ...draft, category: e.target.value })}
-          >
-            {COST_CATEGORIES.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-          <input
-            type="number"
-            className="input w-16"
-            title="Quantity"
-            value={draft.quantity}
-            onChange={(e) => setDraft({ ...draft, quantity: Number(e.target.value) })}
-          />
-          <input
-            type="number"
-            className="input w-24"
-            title="Unit cost"
-            value={draft.unit_cost}
-            onChange={(e) => setDraft({ ...draft, unit_cost: Number(e.target.value) })}
-          />
-          <button
-            className="btn-primary"
-            disabled={!draft.label}
-            onClick={async () => {
-              await createCost.mutateAsync(draft);
-              setDraft({ ...draft, label: "", quantity: 1, unit_cost: 0 });
-            }}
-          >
-            <Plus className="h-4 w-4" /> Add
-          </button>
+        <div className="space-y-2 rounded-lg border border-app bg-ink-50 p-3 dark:bg-slate-800/50">
+          <p className="panel-title">Add to estimate (no drawing needed)</p>
+          {/* add from catalog */}
+          <div className="flex items-end gap-2">
+            <label className="flex-1">
+              <span className="text-xs text-ink-500">From catalog</span>
+              <select
+                className="input"
+                value={catalogPick}
+                onChange={(e) => setCatalogPick(e.target.value)}
+              >
+                <option value="">Select an item…</option>
+                {catalog?.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.category} — {c.name} ({money(c.unit_cost)})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              className="btn-primary"
+              disabled={!catalogPick}
+              onClick={addFromCatalog}
+            >
+              <Plus className="h-4 w-4" /> Add item
+            </button>
+          </div>
+          {/* custom line */}
+          <div className="flex flex-wrap items-end gap-2">
+            <input
+              className="input flex-1"
+              placeholder="Custom line (e.g. Civil work — wall masonry)"
+              value={draft.label}
+              onChange={(e) => setDraft({ ...draft, label: e.target.value })}
+            />
+            <select
+              className="input w-36"
+              value={draft.category}
+              onChange={(e) => setDraft({ ...draft, category: e.target.value })}
+            >
+              {COST_CATEGORIES.map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+            <input
+              type="number"
+              className="input w-16"
+              title="Quantity"
+              value={draft.quantity}
+              onChange={(e) => setDraft({ ...draft, quantity: Number(e.target.value) })}
+            />
+            <input
+              type="number"
+              className="input w-24"
+              title="Unit cost"
+              value={draft.unit_cost}
+              onChange={(e) => setDraft({ ...draft, unit_cost: Number(e.target.value) })}
+            />
+            <button
+              className="btn-primary"
+              disabled={!draft.label}
+              onClick={async () => {
+                await createCost.mutateAsync(draft);
+                setDraft({ ...draft, label: "", quantity: 1, unit_cost: 0 });
+              }}
+            >
+              <Plus className="h-4 w-4" /> Add
+            </button>
+          </div>
         </div>
       )}
 

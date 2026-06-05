@@ -12,6 +12,8 @@ export type Tool =
   | "select"
   | "wall"
   | "room"
+  | "door"
+  | "window"
   | "place"
   | "comment"
   | "measure";
@@ -19,6 +21,16 @@ export type Tool =
 export type ViewMode = "2d" | "3d";
 
 let tempId = -1; // negative ids for not-yet-saved elements
+
+interface HistorySnap {
+  elements: Record<number, ElementModel>;
+  order: number[];
+  dirty: number[];
+  deletes: number[];
+  selectedId: number | null;
+}
+const HISTORY_LIMIT = 60;
+const COALESCE_MS = 500;
 
 interface EditorState {
   projectId: number | null;
@@ -40,6 +52,10 @@ interface EditorState {
   dirty: Set<number>;
   deletes: Set<number>;
   saving: boolean;
+
+  past: HistorySnap[];
+  future: HistorySnap[];
+  lastTouch: { id: number; t: number } | null;
 
   canEdit: boolean;
   isContributor: boolean;
@@ -65,6 +81,8 @@ interface EditorState {
   addElement: (partial: Partial<ElementModel>) => number;
   updateElement: (id: number, patch: Partial<ElementModel>, markDirty?: boolean) => void;
   deleteElement: (id: number) => void;
+  undo: () => void;
+  redo: () => void;
   save: () => Promise<void>;
 }
 
@@ -87,6 +105,9 @@ export const useEditor = create<EditorState>((set, get) => ({
   dirty: new Set(),
   deletes: new Set(),
   saving: false,
+  past: [],
+  future: [],
+  lastTouch: null,
   canEdit: false,
   isContributor: false,
 
@@ -105,6 +126,9 @@ export const useEditor = create<EditorState>((set, get) => ({
       selectedId: null,
       dirty: new Set(),
       deletes: new Set(),
+      past: [],
+      future: [],
+      lastTouch: null,
       canEdit,
       isContributor,
       tool: "select",
@@ -133,6 +157,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   select: (id) => set({ selectedId: id }),
 
   addElement: (partial) => {
+    recordHistory(get, set);
     const id = tempId--;
     const el: ElementModel = {
       id,
@@ -164,7 +189,8 @@ export const useEditor = create<EditorState>((set, get) => ({
     return id;
   },
 
-  updateElement: (id, patch, markDirty = true) =>
+  updateElement: (id, patch, markDirty = true) => {
+    if (markDirty) recordHistory(get, set, id); // coalesce rapid edits to same element
     set((s) => {
       const existing = s.elements[id];
       if (!existing) return {};
@@ -174,9 +200,11 @@ export const useEditor = create<EditorState>((set, get) => ({
         elements: { ...s.elements, [id]: { ...existing, ...patch } },
         dirty,
       };
-    }),
+    });
+  },
 
-  deleteElement: (id) =>
+  deleteElement: (id) => {
+    recordHistory(get, set);
     set((s) => {
       const elements = { ...s.elements };
       delete elements[id];
@@ -191,7 +219,34 @@ export const useEditor = create<EditorState>((set, get) => ({
         dirty,
         selectedId: s.selectedId === id ? null : s.selectedId,
       };
-    }),
+    });
+  },
+
+  undo: () => {
+    const s = get();
+    if (s.past.length === 0) return;
+    const prev = s.past[s.past.length - 1];
+    const current = snapshotOf(s);
+    set({
+      ...restoreSnap(prev),
+      past: s.past.slice(0, -1),
+      future: [current, ...s.future].slice(0, HISTORY_LIMIT),
+      lastTouch: null,
+    });
+  },
+
+  redo: () => {
+    const s = get();
+    if (s.future.length === 0) return;
+    const next = s.future[0];
+    const current = snapshotOf(s);
+    set({
+      ...restoreSnap(next),
+      past: [...s.past, current].slice(-HISTORY_LIMIT),
+      future: s.future.slice(1),
+      lastTouch: null,
+    });
+  },
 
   save: async () => {
     const { projectId, floorId, elements, dirty, deletes } = get();
@@ -234,3 +289,49 @@ export const useEditor = create<EditorState>((set, get) => ({
     }
   },
 }));
+
+// ---- undo/redo helpers ----
+function snapshotOf(s: EditorState): HistorySnap {
+  return {
+    elements: { ...s.elements },
+    order: [...s.order],
+    dirty: Array.from(s.dirty),
+    deletes: Array.from(s.deletes),
+    selectedId: s.selectedId,
+  };
+}
+
+function restoreSnap(snap: HistorySnap) {
+  return {
+    elements: { ...snap.elements },
+    order: [...snap.order],
+    dirty: new Set(snap.dirty),
+    deletes: new Set(snap.deletes),
+    selectedId: snap.selectedId,
+  };
+}
+
+/** Push the pre-mutation state onto the undo stack. When `coalesceId` is given,
+ * rapid consecutive edits to the same element collapse into one undo step. */
+function recordHistory(
+  get: () => EditorState,
+  set: (partial: Partial<EditorState>) => void,
+  coalesceId?: number
+) {
+  const s = get();
+  const now = Date.now();
+  if (
+    coalesceId !== undefined &&
+    s.lastTouch &&
+    s.lastTouch.id === coalesceId &&
+    now - s.lastTouch.t < COALESCE_MS
+  ) {
+    set({ lastTouch: { id: coalesceId, t: now } });
+    return;
+  }
+  set({
+    past: [...s.past, snapshotOf(s)].slice(-HISTORY_LIMIT),
+    future: [],
+    lastTouch: coalesceId !== undefined ? { id: coalesceId, t: now } : null,
+  });
+}

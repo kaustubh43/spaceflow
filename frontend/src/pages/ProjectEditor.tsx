@@ -29,6 +29,7 @@ import { Tooltip } from "@/components/Tooltip";
 import {
   ArrowLeft,
   Box,
+  DoorOpen,
   Grid3x3,
   History,
   Image,
@@ -39,7 +40,9 @@ import {
   Move3d,
   PencilRuler,
   Plus,
+  RectangleHorizontal,
   Receipt,
+  Redo2,
   Ruler,
   Save,
   Settings,
@@ -47,13 +50,16 @@ import {
   Square,
   Sticker,
   Sun,
+  Undo2,
   Users,
 } from "lucide-react";
 
 const TOOLS: { id: Tool; icon: any; label: string }[] = [
   { id: "select", icon: MousePointer2, label: "Select / move" },
-  { id: "wall", icon: PencilRuler, label: "Draw wall (dbl-click to finish)" },
-  { id: "room", icon: Square, label: "Draw room (dbl-click to finish)" },
+  { id: "wall", icon: PencilRuler, label: "Draw wall (Enter / Finish to complete)" },
+  { id: "room", icon: Square, label: "Draw room (Enter / Finish to complete)" },
+  { id: "door", icon: DoorOpen, label: "Place a door" },
+  { id: "window", icon: RectangleHorizontal, label: "Place a window" },
   { id: "measure", icon: Ruler, label: "Measure distance" },
   { id: "comment", icon: Sticker, label: "Pin a comment" },
 ];
@@ -94,6 +100,28 @@ export function ProjectEditor() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elements, floorId, canEdit, isContributor]);
+
+  // undo / redo keyboard shortcuts (ignored while typing in form fields)
+  useEffect(() => {
+    if (!canEdit) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod || e.key.toLowerCase() !== "z") {
+        if (mod && e.key.toLowerCase() === "y") {
+          e.preventDefault();
+          useEditor.getState().redo();
+        }
+        return;
+      }
+      e.preventDefault();
+      if (e.shiftKey) useEditor.getState().redo();
+      else useEditor.getState().undo();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [canEdit]);
 
   const floor = floors?.find((f) => f.id === floorId);
   const dirtyCount = editor.dirty.size + editor.deletes.size;
@@ -168,6 +196,28 @@ export function ProjectEditor() {
         </div>
 
         <div className="flex items-center gap-1.5">
+          {canEdit && (
+            <div className="mr-1 flex gap-0.5">
+              <Tooltip label="Undo (Ctrl/Cmd+Z)">
+                <button
+                  className="btn-outline !px-2"
+                  disabled={editor.past.length === 0}
+                  onClick={() => editor.undo()}
+                >
+                  <Undo2 className="h-4 w-4" />
+                </button>
+              </Tooltip>
+              <Tooltip label="Redo (Ctrl/Cmd+Shift+Z)">
+                <button
+                  className="btn-outline !px-2"
+                  disabled={editor.future.length === 0}
+                  onClick={() => editor.redo()}
+                >
+                  <Redo2 className="h-4 w-4" />
+                </button>
+              </Tooltip>
+            </div>
+          )}
           {/* 2D / 3D toggle */}
           <div className="flex rounded-lg border border-app p-0.5">
             <Tooltip label="2D top-view editor">

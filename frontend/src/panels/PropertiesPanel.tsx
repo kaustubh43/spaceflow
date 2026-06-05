@@ -1,7 +1,7 @@
 import { useEditor } from "@/store/editor";
 import { LAYERS, LAYER_MAP } from "@/layers/config";
 import type { ElementModel, SwitchButton } from "@/types";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, RotateCcw, RotateCw, Trash2 } from "lucide-react";
 
 const BUTTON_TYPES = ["switch", "regulator", "socket", "dimmer", "bell", "blank"];
 
@@ -149,6 +149,33 @@ export function PropertiesPanel() {
 
   const update = (patch: Partial<ElementModel>) => updateElement(el.id, patch);
   const isLine = ["wall", "room", "plumbing_line"].includes(el.kind);
+
+  const rotatePoints = (deg: number) => {
+    if (!el.points || el.points.length < 4) return;
+    const pts = el.points;
+    const n = pts.length / 2;
+    let cx = 0;
+    let cy = 0;
+    for (let i = 0; i < n; i++) {
+      cx += pts[i * 2];
+      cy += pts[i * 2 + 1];
+    }
+    cx /= n;
+    cy /= n;
+    const rad = (deg * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    const out: number[] = [];
+    for (let i = 0; i < n; i++) {
+      const dx = pts[i * 2] - cx;
+      const dy = pts[i * 2 + 1] - cy;
+      out.push(
+        Math.round(cx + dx * cos - dy * sin),
+        Math.round(cy + dx * sin + dy * cos)
+      );
+    }
+    update({ points: out });
+  };
   const editableByMe =
     canEdit || (isContributor && el.client_editable);
   const readOnly = !editableByMe;
@@ -198,6 +225,36 @@ export function PropertiesPanel() {
             <NumberField label="Y" value={el.y} onChange={(v) => update({ y: v })} />
           </div>
         </>
+      )}
+
+      {isLine && canEdit && (
+        <div className="space-y-2">
+          <p className="rounded bg-ink-50 px-2 py-1.5 text-xs text-ink-500 dark:bg-slate-800/50">
+            Drag the corner handles on the canvas to reshape or extend. Corners snap
+            to the grid and to nearby room/wall corners.
+          </p>
+          <div>
+            <span className="text-xs text-ink-500">Orientation</span>
+            <div className="mt-1 flex gap-1">
+              <button className="btn-outline flex-1 py-1" onClick={() => rotatePoints(-90)}>
+                <RotateCcw className="h-4 w-4" /> 90°
+              </button>
+              <button className="btn-outline flex-1 py-1" onClick={() => rotatePoints(90)}>
+                <RotateCw className="h-4 w-4" /> 90°
+              </button>
+            </div>
+          </div>
+          <NumberField
+            label={el.kind === "room" ? "Railing height (3D, 0 = none)" : "Wall height (3D, 0 = default)"}
+            value={Number(el.properties.wall_height ?? 0)}
+            onChange={(v) =>
+              update({ properties: { ...el.properties, wall_height: v } })
+            }
+          />
+          <p className="text-xs text-ink-400">
+            Set a low height (e.g. 100) to model a balcony railing or parapet.
+          </p>
+        </div>
       )}
 
       {canEdit && (

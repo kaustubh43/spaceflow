@@ -15,35 +15,45 @@ interface Props {
 }
 
 function Walls({ floor, els }: { floor: Floor; els: ElementModel[] }) {
-  const h = floor.wall_height_cm * M;
+  const defaultH = floor.wall_height_cm * M;
   const wallTex = useMemo(() => plasterTexture(), []);
   const segments = useMemo(() => {
-    const out: { pos: [number, number, number]; rot: number; len: number }[] = [];
-    for (const el of els) {
-      if (el.kind !== "wall" || !el.points) continue;
-      const p = el.points;
-      for (let i = 0; i < p.length - 2; i += 2) {
+    const out: { pos: [number, number, number]; rot: number; len: number; h: number }[] = [];
+    const addRun = (p: number[], h: number, closed: boolean) => {
+      const count = closed ? p.length : p.length - 2;
+      for (let i = 0; i < count; i += 2) {
         const x1 = p[i] * M;
         const z1 = p[i + 1] * M;
-        const x2 = p[i + 2] * M;
-        const z2 = p[i + 3] * M;
+        const x2 = p[(i + 2) % p.length] * M;
+        const z2 = p[(i + 3) % p.length] * M;
         const len = Math.hypot(x2 - x1, z2 - z1);
         if (len < 0.01) continue;
         out.push({
           pos: [(x1 + x2) / 2, h / 2, (z1 + z2) / 2],
           rot: Math.atan2(z2 - z1, x2 - x1),
           len,
+          h,
         });
+      }
+    };
+    for (const el of els) {
+      if (!el.points) continue;
+      const custom = Number(el.properties?.wall_height ?? 0);
+      if (el.kind === "wall") {
+        addRun(el.points, custom > 0 ? custom * M : defaultH, false);
+      } else if (el.kind === "room" && custom > 0) {
+        // a room with a height becomes a low railing/parapet (balconies)
+        addRun(el.points, custom * M, true);
       }
     }
     return out;
-  }, [els, h]);
+  }, [els, defaultH]);
 
   return (
     <>
       {segments.map((s, i) => (
         <mesh key={i} position={s.pos} rotation={[0, -s.rot, 0]} castShadow receiveShadow>
-          <boxGeometry args={[s.len + 0.1, h, 0.12]} />
+          <boxGeometry args={[s.len + 0.1, s.h, 0.12]} />
           <meshStandardMaterial map={wallTex} roughness={0.92} metalness={0} color="#f4f5f7" />
         </mesh>
       ))}

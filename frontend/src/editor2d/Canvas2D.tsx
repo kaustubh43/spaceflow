@@ -107,11 +107,33 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
   const snapV = (v: number) =>
     snap ? Math.round(v / floor.grid_cm) * floor.grid_cm : v;
 
+  // snap to a nearby wall/room corner if within ~14px, else to the grid.
+  // `excludeId` skips a vertex of the element currently being dragged.
+  const snapWorld = (wx: number, wy: number, excludeId?: number) => {
+    const thr = 14 / scale;
+    let best: [number, number] | null = null;
+    let bestD = thr;
+    for (const id of order) {
+      const el = elements[id];
+      if (!el?.points || !visibleLayers.has(el.layer)) continue;
+      for (let i = 0; i < el.points.length; i += 2) {
+        if (id === excludeId) continue;
+        const d = Math.hypot(el.points[i] - wx, el.points[i + 1] - wy);
+        if (d < bestD) {
+          bestD = d;
+          best = [el.points[i], el.points[i + 1]];
+        }
+      }
+    }
+    if (best) return { x: best[0], y: best[1] };
+    return { x: snapV(wx), y: snapV(wy) };
+  };
+
   const pointer = () => {
     const stage = stageRef.current!;
     const p = stage.getPointerPosition()!;
     const w = toWorld(p.x, p.y);
-    return { x: snapV(w.x), y: snapV(w.y) };
+    return snapWorld(w.x, w.y);
   };
 
   const onWheel = (e: Konva.KonvaEventObject<WheelEvent>) => {
@@ -200,6 +222,25 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
         is_existing: placeExisting,
         properties: { ...placing.default_properties },
       });
+      return;
+    }
+
+    if (tool === "door" || tool === "window") {
+      const { x, y } = pointer();
+      if (tool === "door") {
+        addElement({
+          kind: "door", layer: "architecture", name: "Door",
+          x, y, width_cm: 90, depth_cm: 12, height_cm: 210,
+          color: "#b45309", properties: { swing: "left" },
+        });
+      } else {
+        addElement({
+          kind: "window", layer: "architecture", name: "Window",
+          x, y, width_cm: 120, depth_cm: 12, height_cm: 120,
+          color: "#7dd3fc", properties: { sill_cm: 90 },
+        });
+      }
+      setTool("select");
       return;
     }
 
@@ -327,6 +368,48 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
               />
             );
           })}
+
+          {/* vertex handles for the selected wall / room / pipe — drag a corner to reshape */}
+          {(() => {
+            const el = selectedId ? elements[selectedId] : null;
+            if (
+              !el ||
+              !el.points ||
+              !canEdit ||
+              lockedLayers.has(el.layer) ||
+              tool !== "select"
+            )
+              return null;
+            const pts = el.points;
+            return Array.from({ length: pts.length / 2 }).map((_, i) => (
+              <Circle
+                key={`vh-${el.id}-${i}`}
+                x={pts[i * 2]}
+                y={pts[i * 2 + 1]}
+                radius={7 / scale}
+                fill="#ffffff"
+                stroke="#4f46e5"
+                strokeWidth={2 / scale}
+                draggable
+                onDragMove={(e) => {
+                  const snapped = snapWorld(e.target.x(), e.target.y(), el.id);
+                  e.target.position(snapped);
+                  const next = [...pts];
+                  next[i * 2] = snapped.x;
+                  next[i * 2 + 1] = snapped.y;
+                  updateElement(el.id, { points: next });
+                }}
+                onMouseEnter={(e) => {
+                  const c = e.target.getStage()?.container();
+                  if (c) c.style.cursor = "move";
+                }}
+                onMouseLeave={(e) => {
+                  const c = e.target.getStage()?.container();
+                  if (c) c.style.cursor = "default";
+                }}
+              />
+            ));
+          })()}
 
           {/* draft polyline for wall/room */}
           {draft.length > 0 && (

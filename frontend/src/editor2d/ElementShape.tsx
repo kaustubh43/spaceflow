@@ -1,4 +1,4 @@
-import { Circle, Group, Line, Rect, Text } from "react-konva";
+import { Arc, Circle, Group, Line, Rect, Text } from "react-konva";
 import type { ElementModel } from "@/types";
 import { layerColor } from "@/layers/config";
 
@@ -81,6 +81,8 @@ export function ElementShape({ el, selected, draggable, onSelect, onChange }: Pr
   const w = el.width_cm;
   const d = el.depth_cm;
   const isPoint = ["electrical_point", "light", "network_point"].includes(el.kind);
+  const isDoor = el.kind === "door";
+  const isWindow = el.kind === "window";
 
   const handleDragEnd = (e: any) => {
     onChange({ x: e.target.x(), y: e.target.y() });
@@ -113,7 +115,46 @@ export function ElementShape({ el, selected, draggable, onSelect, onChange }: Pr
       onDragEnd={handleDragEnd}
       onTransformEnd={handleTransformEnd}
     >
-      {isPoint ? (
+      {isDoor ? (
+        <>
+          {/* opening gap */}
+          <Rect width={w} height={d} offsetX={w / 2} offsetY={d / 2} fill="#ffffff" />
+          {/* swing arc + leaf, hinged at the left jamb */}
+          <Arc
+            x={-w / 2}
+            y={d / 2}
+            innerRadius={0}
+            outerRadius={w}
+            angle={90}
+            rotation={-90}
+            stroke={selected ? "#4f46e5" : color}
+            strokeWidth={selected ? 2.5 : 1.5}
+            fill="rgba(180,83,9,0.08)"
+          />
+          <Line
+            points={[-w / 2, d / 2, -w / 2, d / 2 - w]}
+            stroke={selected ? "#4f46e5" : color}
+            strokeWidth={selected ? 4 : 3}
+          />
+        </>
+      ) : isWindow ? (
+        <>
+          <Rect
+            width={w}
+            height={d}
+            offsetX={w / 2}
+            offsetY={d / 2}
+            fill="#e0f2fe"
+            stroke={selected ? "#4f46e5" : color}
+            strokeWidth={selected ? 3 : 2}
+          />
+          <Line
+            points={[-w / 2, 0, w / 2, 0]}
+            stroke={selected ? "#4f46e5" : color}
+            strokeWidth={1}
+          />
+        </>
+      ) : isPoint ? (
         <Circle
           radius={Math.max(w, d) / 2 || 8}
           fill={color}
@@ -136,7 +177,7 @@ export function ElementShape({ el, selected, draggable, onSelect, onChange }: Pr
           dash={el.is_existing ? [8, 5] : undefined}
         />
       )}
-      {!isPoint && (
+      {!isPoint && !isDoor && !isWindow && (
         <Text
           text={el.name}
           width={w}
