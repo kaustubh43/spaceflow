@@ -32,6 +32,7 @@ interface EditorState {
 
   tool: Tool;
   placing: CatalogItem | null;
+  placeExisting: boolean; // place the next item as an existing (not charged) item
   view: ViewMode;
   showGrid: boolean;
   snap: boolean;
@@ -53,6 +54,7 @@ interface EditorState {
   ) => void;
   setTool: (t: Tool) => void;
   setPlacing: (c: CatalogItem | null) => void;
+  setPlaceExisting: (v: boolean) => void;
   setView: (v: ViewMode) => void;
   toggleLayer: (l: LayerType) => void;
   toggleLock: (l: LayerType) => void;
@@ -78,6 +80,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   lockedLayers: new Set(),
   tool: "select",
   placing: null,
+  placeExisting: false,
   view: "2d",
   showGrid: true,
   snap: true,
@@ -111,6 +114,7 @@ export const useEditor = create<EditorState>((set, get) => ({
 
   setTool: (t) => set({ tool: t, placing: t === "place" ? get().placing : null }),
   setPlacing: (c) => set({ placing: c, tool: c ? "place" : "select" }),
+  setPlaceExisting: (v) => set({ placeExisting: v }),
   setView: (v) => set({ view: v }),
   toggleLayer: (l) =>
     set((s) => {
@@ -146,6 +150,8 @@ export const useEditor = create<EditorState>((set, get) => ({
       color: partial.color ?? null,
       z_index: partial.z_index ?? get().order.length,
       client_editable: partial.client_editable ?? false,
+      is_existing: partial.is_existing ?? false,
+      unit_cost_override: partial.unit_cost_override ?? null,
       catalog_item_id: partial.catalog_item_id ?? null,
       properties: partial.properties ?? {},
     };

@@ -47,6 +47,11 @@ class Element(Base, TimestampMixin):
     # whether a project contributor (client) may edit this element
     client_editable: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # an item the client already owns: shown on the plan but NOT charged in the BOM
+    is_existing: Mapped[bool] = mapped_column(Boolean, default=False)
+    # overrides the catalog unit cost in the BOM when set
+    unit_cost_override: Mapped[float | None] = mapped_column(Float, nullable=True)
+
     catalog_item_id: Mapped[int | None] = mapped_column(
         ForeignKey("catalog_items.id"), nullable=True
     )

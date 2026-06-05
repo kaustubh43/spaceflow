@@ -19,6 +19,8 @@ class ElementBase(BaseModel):
     color: str | None = None
     z_index: int = 0
     client_editable: bool = False
+    is_existing: bool = False
+    unit_cost_override: float | None = None
     catalog_item_id: int | None = None
     properties: dict[str, Any] = {}
 
@@ -41,6 +43,8 @@ class ElementUpdate(BaseModel):
     color: str | None = None
     z_index: int | None = None
     client_editable: bool | None = None
+    is_existing: bool | None = None
+    unit_cost_override: float | None = None
     catalog_item_id: int | None = None
     properties: dict[str, Any] | None = None
 

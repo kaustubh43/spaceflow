@@ -2,11 +2,11 @@ import { useMemo, useState } from "react";
 import { useCatalog } from "@/api/hooks";
 import { useEditor } from "@/store/editor";
 import { LAYER_MAP } from "@/layers/config";
-import { Search } from "lucide-react";
+import { PackageCheck, Search, Tag } from "lucide-react";
 
 export function CatalogPanel() {
   const { data: catalog } = useCatalog();
-  const { placing, setPlacing, canEdit } = useEditor();
+  const { placing, setPlacing, placeExisting, setPlaceExisting, canEdit } = useEditor();
   const [q, setQ] = useState("");
 
   const grouped = useMemo(() => {
@@ -26,6 +26,30 @@ export function CatalogPanel() {
   return (
     <div>
       <p className="panel-title mb-2">Catalog — click then click on plan to place</p>
+
+      {/* New vs Existing placement mode */}
+      <div className="mb-2 flex rounded-lg border border-app p-0.5 text-xs">
+        <button
+          className={`btn flex-1 py-1 ${!placeExisting ? "bg-brand-600 text-white" : "text-ink-600 dark:text-slate-300"}`}
+          onClick={() => setPlaceExisting(false)}
+          title="New items are charged in the bill of materials"
+        >
+          <Tag className="h-3.5 w-3.5" /> New (charged)
+        </button>
+        <button
+          className={`btn flex-1 py-1 ${placeExisting ? "bg-teal-600 text-white" : "text-ink-600 dark:text-slate-300"}`}
+          onClick={() => setPlaceExisting(true)}
+          title="Existing items the client already owns — shown on the plan but not charged"
+        >
+          <PackageCheck className="h-3.5 w-3.5" /> Existing
+        </button>
+      </div>
+      {placeExisting && (
+        <p className="mb-2 rounded bg-teal-50 px-2 py-1 text-xs text-teal-700 dark:bg-teal-950 dark:text-teal-300">
+          Placing existing items — won't be charged to the client.
+        </p>
+      )}
+
       <div className="relative mb-2">
         <Search className="absolute left-2 top-2.5 h-4 w-4 text-ink-400" />
         <input

@@ -29,6 +29,7 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
     lockedLayers,
     tool,
     placing,
+    placeExisting,
     showGrid,
     snap,
     canEdit,
@@ -155,6 +156,7 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
         height_cm: placing.default_height_cm,
         color: placing.color,
         catalog_item_id: placing.id,
+        is_existing: placeExisting,
         properties: { ...placing.default_properties },
       });
       return;
@@ -226,7 +228,7 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
   const stageDraggable = tool === "select";
 
   return (
-    <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-ink-100">
+    <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-ink-100 dark:bg-slate-800">
       <Stage
         ref={stageRef}
         width={size.w}

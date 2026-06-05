@@ -8,6 +8,7 @@ import type {
   BOMReport,
   CatalogItem,
   Comment,
+  CostItemModel,
   ElementModel,
   Floor,
   Project,
@@ -180,6 +181,67 @@ export function useBOM(projectId: number) {
     queryFn: async () =>
       (await api.get<BOMReport>(`/projects/${projectId}/bom`)).data,
     enabled: !!projectId,
+  });
+}
+
+// ---- Cost items (manual BOM lines) + item overrides ----
+export function useCostItems(projectId: number) {
+  return useQuery({
+    queryKey: ["cost-items", projectId],
+    queryFn: async () =>
+      (await api.get<CostItemModel[]>(`/projects/${projectId}/cost-items`)).data,
+    enabled: !!projectId,
+  });
+}
+
+export function useCreateCostItem(projectId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Partial<CostItemModel>) =>
+      (await api.post(`/projects/${projectId}/cost-items`, body)).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cost-items", projectId] });
+      qc.invalidateQueries({ queryKey: ["bom", projectId] });
+    },
+  });
+}
+
+export function useUpdateCostItem(projectId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, body }: { id: number; body: Partial<CostItemModel> }) =>
+      (await api.patch(`/projects/${projectId}/cost-items/${id}`, body)).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cost-items", projectId] });
+      qc.invalidateQueries({ queryKey: ["bom", projectId] });
+    },
+  });
+}
+
+export function useDeleteCostItem(projectId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) =>
+      api.delete(`/projects/${projectId}/cost-items/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cost-items", projectId] });
+      qc.invalidateQueries({ queryKey: ["bom", projectId] });
+    },
+  });
+}
+
+export function useItemOverride(projectId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: {
+      catalog_item_id: number;
+      unit_cost?: number;
+      is_existing?: boolean;
+    }) => api.post(`/projects/${projectId}/bom/item-override`, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["bom", projectId] });
+      qc.invalidateQueries({ queryKey: ["elements"] });
+    },
   });
 }
 

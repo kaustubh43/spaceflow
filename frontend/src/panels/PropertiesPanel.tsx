@@ -278,6 +278,37 @@ export function PropertiesPanel() {
         </label>
       )}
 
+      {canEdit && el.catalog_item_id && (
+        <div className="space-y-2 rounded-lg border border-app bg-ink-50 p-2 dark:bg-slate-800/50">
+          <p className="panel-title">Costing</p>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={el.is_existing}
+              onChange={(e) => update({ is_existing: e.target.checked })}
+            />
+            Existing item (don't charge the client)
+          </label>
+          <label className="block">
+            <span className="text-xs text-ink-500">
+              Price override {el.is_existing && "(not charged)"}
+            </span>
+            <input
+              className="input"
+              type="number"
+              placeholder="Use catalog price"
+              value={el.unit_cost_override ?? ""}
+              onChange={(e) =>
+                update({
+                  unit_cost_override:
+                    e.target.value === "" ? null : Number(e.target.value),
+                })
+              }
+            />
+          </label>
+        </div>
+      )}
+
       {canEdit && (
         <button
           className="btn-outline w-full text-red-600"

@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { useEditor } from "@/store/editor";
 import type { ElementModel, Floor } from "@/types";
 import { layerColor } from "@/layers/config";
+import { plasterTexture, woodFloorTexture } from "./textures";
 import { Eye, Orbit } from "lucide-react";
 
 const M = 0.01; // cm -> metres
@@ -15,6 +16,7 @@ interface Props {
 
 function Walls({ floor, els }: { floor: Floor; els: ElementModel[] }) {
   const h = floor.wall_height_cm * M;
+  const wallTex = useMemo(() => plasterTexture(), []);
   const segments = useMemo(() => {
     const out: { pos: [number, number, number]; rot: number; len: number }[] = [];
     for (const el of els) {
@@ -40,9 +42,9 @@ function Walls({ floor, els }: { floor: Floor; els: ElementModel[] }) {
   return (
     <>
       {segments.map((s, i) => (
-        <mesh key={i} position={s.pos} rotation={[0, -s.rot, 0]} castShadow>
+        <mesh key={i} position={s.pos} rotation={[0, -s.rot, 0]} castShadow receiveShadow>
           <boxGeometry args={[s.len + 0.1, h, 0.12]} />
-          <meshStandardMaterial color="#e7e9ee" />
+          <meshStandardMaterial map={wallTex} roughness={0.92} metalness={0} color="#f4f5f7" />
         </mesh>
       ))}
     </>
@@ -77,6 +79,7 @@ function Items({ els, center }: { els: ElementModel[]; center: [number, number] 
 export function Scene3D({ floor }: Props) {
   const { elements, order, visibleLayers } = useEditor();
   const [mode, setMode] = useState<"orbit" | "walk">("orbit");
+  const floorTex = useMemo(() => woodFloorTexture(), []);
 
   const els = order
     .map((id) => elements[id])
@@ -85,6 +88,10 @@ export function Scene3D({ floor }: Props) {
   const fw = floor.width_cm * M;
   const fh = floor.height_cm * M;
   const center: [number, number] = [fw / 2, fh / 2];
+
+  useMemo(() => {
+    floorTex.repeat.set(Math.max(2, fw / 1.2), Math.max(2, fh / 1.2));
+  }, [floorTex, fw, fh]);
 
   return (
     <div className="relative h-full w-full bg-gradient-to-b from-slate-200 to-slate-400">
@@ -109,7 +116,11 @@ export function Scene3D({ floor }: Props) {
               receiveShadow
             >
               <planeGeometry args={[fw, fh]} />
-              <meshStandardMaterial color="#f8fafc" side={THREE.DoubleSide} />
+              <meshStandardMaterial
+                map={floorTex}
+                roughness={0.7}
+                side={THREE.DoubleSide}
+              />
             </mesh>
             <Walls floor={floor} els={els} />
             <Items els={els} center={center} />

@@ -9,6 +9,7 @@ from app.api.routes import (
     floors,
     projects,
     reports,
+    settings as settings_routes,
 )
 from app.core.config import settings
 
@@ -22,7 +23,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for module in (auth, projects, floors, elements, catalog, comments, reports):
+for module in (
+    auth,
+    projects,
+    floors,
+    elements,
+    catalog,
+    comments,
+    reports,
+    settings_routes,
+):
     app.include_router(module.router, prefix=settings.API_PREFIX)
 
 

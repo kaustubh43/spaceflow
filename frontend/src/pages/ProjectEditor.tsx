@@ -14,26 +14,39 @@ import { LayerPanel } from "@/panels/LayerPanel";
 import { CatalogPanel } from "@/panels/CatalogPanel";
 import { PropertiesPanel } from "@/panels/PropertiesPanel";
 import { CommentsPanel } from "@/panels/CommentsPanel";
-import { BOMModal, MembersModal, SnapshotsModal } from "@/panels/Modals";
+import {
+  AdminSettingsModal,
+  BOMModal,
+  FloorSettingsModal,
+  MembersModal,
+  SnapshotsModal,
+} from "@/panels/Modals";
 import { exportPDF, exportPNG } from "@/editor2d/stageHandle";
 import { useCreateComment } from "@/api/hooks";
+import { useSettings } from "@/store/settings";
+import { useAuth } from "@/store/auth";
+import { Tooltip } from "@/components/Tooltip";
 import {
   ArrowLeft,
   Box,
-  DollarSign,
   Grid3x3,
   History,
   Image,
   Magnet,
   MessageSquare,
+  Moon,
   MousePointer2,
   Move3d,
   PencilRuler,
   Plus,
+  Receipt,
   Ruler,
   Save,
+  Settings,
+  SlidersHorizontal,
   Square,
   Sticker,
+  Sun,
   Users,
 } from "lucide-react";
 
@@ -56,8 +69,12 @@ export function ProjectEditor() {
   const { data: elements } = useElements(projectId, floorId);
 
   const editor = useEditor();
+  const user = useAuth((s) => s.user);
+  const { theme, toggleTheme } = useSettings();
   const [rightTab, setRightTab] = useState<"props" | "comments">("props");
-  const [modal, setModal] = useState<null | "bom" | "members" | "snapshots">(null);
+  const [modal, setModal] = useState<
+    null | "bom" | "members" | "snapshots" | "floor" | "admin"
+  >(null);
 
   const createComment = useCreateComment(projectId, floorId ?? 0);
 
@@ -106,13 +123,15 @@ export function ProjectEditor() {
     );
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="app-bg flex h-full flex-col">
       {/* top bar */}
-      <header className="flex items-center justify-between border-b border-ink-200 bg-white px-4 py-2">
+      <header className="flex items-center justify-between border-b border-app surface px-4 py-2">
         <div className="flex items-center gap-3">
-          <Link to="/" className="btn-ghost !px-2">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
+          <Tooltip label="Back to projects">
+            <Link to="/" className="btn-ghost !px-2">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Tooltip>
           <div>
             <h1 className="text-sm font-bold leading-tight">{project.name}</h1>
             <p className="text-xs text-ink-400">
@@ -133,107 +152,136 @@ export function ProjectEditor() {
             ))}
           </select>
           {canEdit && (
-            <button className="btn-ghost !px-2" onClick={addFloor} title="Add floor">
-              <Plus className="h-4 w-4" />
-            </button>
+            <>
+              <Tooltip label="Floor & architecture settings (size, grid, wall height)">
+                <button className="btn-ghost !px-2" onClick={() => setModal("floor")}>
+                  <SlidersHorizontal className="h-4 w-4" />
+                </button>
+              </Tooltip>
+              <Tooltip label="Add a floor / level">
+                <button className="btn-ghost !px-2" onClick={addFloor}>
+                  <Plus className="h-4 w-4" />
+                </button>
+              </Tooltip>
+            </>
           )}
         </div>
 
         <div className="flex items-center gap-1.5">
           {/* 2D / 3D toggle */}
-          <div className="flex rounded-lg border border-ink-200 p-0.5">
-            <button
-              className={`btn px-2 py-1 ${editor.view === "2d" ? "bg-brand-600 text-white" : "text-ink-600"}`}
-              onClick={() => editor.setView("2d")}
-            >
-              <Move3d className="h-4 w-4" /> 2D
-            </button>
-            <button
-              className={`btn px-2 py-1 ${editor.view === "3d" ? "bg-brand-600 text-white" : "text-ink-600"}`}
-              onClick={() => editor.setView("3d")}
-            >
-              <Box className="h-4 w-4" /> 3D
-            </button>
+          <div className="flex rounded-lg border border-app p-0.5">
+            <Tooltip label="2D top-view editor">
+              <button
+                className={`btn px-2 py-1 ${editor.view === "2d" ? "bg-brand-600 text-white" : "text-ink-600 dark:text-slate-300"}`}
+                onClick={() => editor.setView("2d")}
+              >
+                <Move3d className="h-4 w-4" /> 2D
+              </button>
+            </Tooltip>
+            <Tooltip label="3D walkthrough view">
+              <button
+                className={`btn px-2 py-1 ${editor.view === "3d" ? "bg-brand-600 text-white" : "text-ink-600 dark:text-slate-300"}`}
+                onClick={() => editor.setView("3d")}
+              >
+                <Box className="h-4 w-4" /> 3D
+              </button>
+            </Tooltip>
           </div>
 
           {editor.view === "2d" && (
             <>
-              <button
-                className={`btn-outline !px-2 ${editor.showGrid ? "bg-ink-100" : ""}`}
-                onClick={editor.toggleGrid}
-                title="Grid"
-              >
-                <Grid3x3 className="h-4 w-4" />
-              </button>
-              <button
-                className={`btn-outline !px-2 ${editor.snap ? "bg-ink-100" : ""}`}
-                onClick={editor.toggleSnap}
-                title="Snap to grid"
-              >
-                <Magnet className="h-4 w-4" />
-              </button>
+              <Tooltip label="Toggle grid">
+                <button
+                  className={`btn-outline !px-2 ${editor.showGrid ? "!bg-ink-100 dark:!bg-slate-700" : ""}`}
+                  onClick={editor.toggleGrid}
+                >
+                  <Grid3x3 className="h-4 w-4" />
+                </button>
+              </Tooltip>
+              <Tooltip label="Snap to grid">
+                <button
+                  className={`btn-outline !px-2 ${editor.snap ? "!bg-ink-100 dark:!bg-slate-700" : ""}`}
+                  onClick={editor.toggleSnap}
+                >
+                  <Magnet className="h-4 w-4" />
+                </button>
+              </Tooltip>
             </>
           )}
 
-          <button className="btn-outline !px-2" onClick={() => setModal("bom")} title="Bill of materials">
-            <DollarSign className="h-4 w-4" />
-          </button>
+          <Tooltip label="Bill of materials & cost estimate">
+            <button className="btn-outline !px-2" onClick={() => setModal("bom")}>
+              <Receipt className="h-4 w-4" />
+            </button>
+          </Tooltip>
           {canEdit && (
             <>
-              <button
-                className="btn-outline !px-2"
-                onClick={() => setModal("snapshots")}
-                title="Version history"
-              >
-                <History className="h-4 w-4" />
-              </button>
-              {myRole === "owner" && (
-                <button
-                  className="btn-outline !px-2"
-                  onClick={() => setModal("members")}
-                  title="Share"
-                >
-                  <Users className="h-4 w-4" />
+              <Tooltip label="Version history (save / restore)">
+                <button className="btn-outline !px-2" onClick={() => setModal("snapshots")}>
+                  <History className="h-4 w-4" />
                 </button>
+              </Tooltip>
+              {myRole === "owner" && (
+                <Tooltip label="Share with clients & teammates">
+                  <button className="btn-outline !px-2" onClick={() => setModal("members")}>
+                    <Users className="h-4 w-4" />
+                  </button>
+                </Tooltip>
               )}
             </>
           )}
 
           {/* export */}
-          <button
-            className="btn-outline !px-2"
-            onClick={() => exportPNG(project.name)}
-            title="Export PNG"
-          >
-            <Image className="h-4 w-4" />
-          </button>
-          <button
-            className="btn-outline py-1"
-            onClick={() => exportPDF(project.name, `${project.name} — ${floor.name}`)}
-          >
-            PDF
-          </button>
+          <Tooltip label="Export plan as PNG image">
+            <button className="btn-outline !px-2" onClick={() => exportPNG(project.name)}>
+              <Image className="h-4 w-4" />
+            </button>
+          </Tooltip>
+          <Tooltip label="Export plan as PDF">
+            <button
+              className="btn-outline py-1"
+              onClick={() => exportPDF(project.name, `${project.name} — ${floor.name}`)}
+            >
+              PDF
+            </button>
+          </Tooltip>
+
+          <Tooltip label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
+            <button className="btn-outline !px-2" onClick={toggleTheme}>
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
+          </Tooltip>
+
+          {user?.role === "designer" && (
+            <Tooltip label="Application settings (admin)">
+              <button className="btn-outline !px-2" onClick={() => setModal("admin")}>
+                <Settings className="h-4 w-4" />
+              </button>
+            </Tooltip>
+          )}
 
           {canEdit && (
-            <button
-              className="btn-primary"
-              onClick={handleSave}
-              disabled={editor.saving || dirtyCount === 0}
-            >
-              <Save className="h-4 w-4" />
-              {editor.saving
-                ? "Saving…"
-                : dirtyCount > 0
-                ? `Save (${dirtyCount})`
-                : "Saved"}
-            </button>
+            <Tooltip label="Save changes to the server">
+              <button
+                className="btn-primary"
+                onClick={handleSave}
+                disabled={editor.saving || dirtyCount === 0}
+              >
+                <Save className="h-4 w-4" />
+                {editor.saving
+                  ? "Saving…"
+                  : dirtyCount > 0
+                  ? `Save (${dirtyCount})`
+                  : "Saved"}
+              </button>
+            </Tooltip>
           )}
         </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
         {/* left sidebar */}
-        <aside className="scroll-thin flex w-64 flex-col gap-4 overflow-y-auto border-r border-ink-200 bg-ink-50 p-3">
+        <aside className="scroll-thin flex w-64 flex-col gap-4 overflow-y-auto border-r border-app surface-muted p-3">
           {editor.view === "2d" && canEdit && (
             <div>
               <p className="panel-title mb-2">Tools</p>
@@ -241,18 +289,18 @@ export function ProjectEditor() {
                 {TOOLS.map((t) => {
                   const Icon = t.icon;
                   return (
-                    <button
-                      key={t.id}
-                      title={t.label}
-                      className={`btn aspect-square !p-0 ${
-                        editor.tool === t.id
-                          ? "bg-brand-600 text-white"
-                          : "bg-white text-ink-600 hover:bg-ink-100"
-                      }`}
-                      onClick={() => editor.setTool(t.id)}
-                    >
-                      <Icon className="h-4 w-4" />
-                    </button>
+                    <Tooltip key={t.id} label={t.label}>
+                      <button
+                        className={`btn aspect-square w-full !p-0 ${
+                          editor.tool === t.id
+                            ? "bg-brand-600 text-white"
+                            : "surface text-ink-600 hover:bg-ink-100 dark:text-slate-300 dark:hover:bg-slate-700"
+                        }`}
+                        onClick={() => editor.setTool(t.id)}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </button>
+                    </Tooltip>
                   );
                 })}
               </div>
@@ -280,16 +328,16 @@ export function ProjectEditor() {
         </main>
 
         {/* right sidebar */}
-        <aside className="flex w-72 flex-col border-l border-ink-200 bg-white p-3">
-          <div className="mb-3 flex rounded-lg border border-ink-200 p-0.5">
+        <aside className="flex w-72 flex-col border-l border-app surface p-3">
+          <div className="mb-3 flex rounded-lg border border-app p-0.5">
             <button
-              className={`btn flex-1 py-1 ${rightTab === "props" ? "bg-brand-600 text-white" : "text-ink-600"}`}
+              className={`btn flex-1 py-1 ${rightTab === "props" ? "bg-brand-600 text-white" : "text-ink-600 dark:text-slate-300"}`}
               onClick={() => setRightTab("props")}
             >
               <PencilRuler className="h-4 w-4" /> Properties
             </button>
             <button
-              className={`btn flex-1 py-1 ${rightTab === "comments" ? "bg-brand-600 text-white" : "text-ink-600"}`}
+              className={`btn flex-1 py-1 ${rightTab === "comments" ? "bg-brand-600 text-white" : "text-ink-600 dark:text-slate-300"}`}
               onClick={() => setRightTab("comments")}
             >
               <MessageSquare className="h-4 w-4" /> Comments
@@ -305,13 +353,23 @@ export function ProjectEditor() {
         </aside>
       </div>
 
-      {modal === "bom" && <BOMModal projectId={projectId} onClose={() => setModal(null)} />}
+      {modal === "bom" && (
+        <BOMModal projectId={projectId} canEdit={canEdit} onClose={() => setModal(null)} />
+      )}
       {modal === "members" && (
         <MembersModal project={project} onClose={() => setModal(null)} />
       )}
       {modal === "snapshots" && (
         <SnapshotsModal projectId={projectId} onClose={() => setModal(null)} />
       )}
+      {modal === "floor" && (
+        <FloorSettingsModal
+          projectId={projectId}
+          floor={floor}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {modal === "admin" && <AdminSettingsModal onClose={() => setModal(null)} />}
     </div>
   );
 }

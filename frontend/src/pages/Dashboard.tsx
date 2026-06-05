@@ -6,12 +6,18 @@ import {
   useProjects,
 } from "@/api/hooks";
 import { useAuth } from "@/store/auth";
+import { useSettings } from "@/store/settings";
+import { AdminSettingsModal } from "@/panels/Modals";
+import { Tooltip } from "@/components/Tooltip";
 import {
   Building2,
   LogOut,
   MapPin,
+  Moon,
   Plus,
+  Settings,
   Sofa,
+  Sun,
   Trash2,
   User as UserIcon,
 } from "lucide-react";
@@ -26,16 +32,18 @@ const roleBadge: Record<MembershipRole, string> = {
 
 export function Dashboard() {
   const { user, logout } = useAuth();
+  const { settings, theme, toggleTheme } = useSettings();
   const navigate = useNavigate();
   const { data: projects, isLoading } = useProjects();
   const createProject = useCreateProject();
   const deleteProject = useDeleteProject();
   const [showNew, setShowNew] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
   const [form, setForm] = useState({
     name: "",
     client_name: "",
     address: "",
-    units: "cm",
+    units: settings.default_units,
   });
 
   const isDesigner = user?.role === "designer";
@@ -48,29 +56,42 @@ export function Dashboard() {
   };
 
   return (
-    <div className="min-h-full">
-      <header className="sticky top-0 z-10 border-b border-ink-200 bg-white/90 backdrop-blur">
+    <div className="app-bg min-h-full">
+      <header className="sticky top-0 z-10 border-b border-app bg-white/90 backdrop-blur dark:bg-slate-900/90">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-2">
             <div className="rounded-lg bg-brand-600 p-1.5 text-white">
               <Sofa className="h-5 w-5" />
             </div>
-            <span className="text-lg font-bold">iDesigner</span>
+            <span className="text-lg font-bold">{settings.app_name}</span>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5 text-sm text-ink-600">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5 text-sm text-ink-600 dark:text-slate-300">
               <UserIcon className="h-4 w-4" />
               {user?.full_name}
-              <span className="rounded bg-ink-100 px-1.5 py-0.5 text-xs">
+              <span className="rounded bg-ink-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">
                 {user?.role}
               </span>
             </span>
+            <Tooltip label={theme === "dark" ? "Light mode" : "Dark mode"}>
+              <button className="btn-ghost !px-2" onClick={toggleTheme}>
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+            </Tooltip>
+            {isDesigner && (
+              <Tooltip label="Application settings (admin)">
+                <button className="btn-ghost !px-2" onClick={() => setShowAdmin(true)}>
+                  <Settings className="h-4 w-4" />
+                </button>
+              </Tooltip>
+            )}
             <button className="btn-ghost" onClick={logout}>
               <LogOut className="h-4 w-4" /> Sign out
             </button>
           </div>
         </div>
       </header>
+      {showAdmin && <AdminSettingsModal onClose={() => setShowAdmin(false)} />}
 
       <main className="mx-auto max-w-6xl px-6 py-8">
         <div className="mb-6 flex items-center justify-between">

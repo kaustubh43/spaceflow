@@ -129,10 +129,11 @@ export function ElementShape({ el, selected, draggable, onSelect, onChange }: Pr
           offsetX={w / 2}
           offsetY={d / 2}
           fill={color}
-          opacity={0.85}
+          opacity={el.is_existing ? 0.5 : 0.85}
           cornerRadius={4}
-          stroke={selected ? "#4f46e5" : "#1e293b"}
-          strokeWidth={selected ? 3 : 1}
+          stroke={selected ? "#4f46e5" : el.is_existing ? "#0f766e" : "#1e293b"}
+          strokeWidth={selected ? 3 : el.is_existing ? 2 : 1}
+          dash={el.is_existing ? [8, 5] : undefined}
         />
       )}
       {!isPoint && (

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "@/store/auth";
+import { useSettings } from "@/store/settings";
 import { Login } from "@/pages/Login";
 import { Register } from "@/pages/Register";
 import { Dashboard } from "@/pages/Dashboard";
@@ -20,9 +21,15 @@ function Protected({ children }: { children: JSX.Element }) {
 
 export default function App() {
   const init = useAuth((s) => s.init);
+  const user = useAuth((s) => s.user);
+  const loadSettings = useSettings((s) => s.load);
   useEffect(() => {
     init();
   }, [init]);
+  // (re)load app settings once authenticated; also applies the saved theme
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings, user]);
 
   return (
     <Routes>

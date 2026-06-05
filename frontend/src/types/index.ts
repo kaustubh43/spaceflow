@@ -83,6 +83,8 @@ export interface ElementModel {
   color?: string | null;
   z_index: number;
   client_editable: boolean;
+  is_existing: boolean;
+  unit_cost_override?: number | null;
   catalog_item_id?: number | null;
   properties: Record<string, any>;
 }
@@ -121,20 +123,48 @@ export interface Snapshot {
 }
 
 export interface BOMLine {
+  source: "item" | "manual";
+  ref_id: number | null;
   name: string;
   category: string;
-  layer: LayerType;
+  layer: LayerType | null;
   quantity: number;
+  unit: string;
   unit_cost: number;
   total_cost: number;
+  is_existing: boolean;
+  editable_cost: boolean;
+  editable_qty: boolean;
 }
 
 export interface BOMReport {
   lines: BOMLine[];
+  charged_total: number;
+  existing_value: number;
   grand_total: number;
 }
 
 export interface SwitchButton {
   label: string;
   type: string;
+}
+
+export interface AppSettings {
+  app_name: string;
+  currency_code: string;
+  currency_symbol: string;
+  currency_locale: string;
+  default_units: string;
+  accent_color: string;
+}
+
+export interface CostItemModel {
+  id: number;
+  project_id: number;
+  label: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  unit_cost: number;
+  sort_order: number;
 }
