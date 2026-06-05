@@ -231,7 +231,7 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
         addElement({
           kind: "door", layer: "architecture", name: "Door",
           x, y, width_cm: 90, depth_cm: 12, height_cm: 210,
-          color: "#b45309", properties: { swing: "left" },
+          color: "#b45309", properties: { swing: "left", open_angle: 90 },
         });
       } else {
         addElement({

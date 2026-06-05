@@ -26,6 +26,8 @@ const ICON_MODEL: Record<string, string> = {
 const KIND_MODEL: Record<string, string> = {
   light: "ceiling_light",
   hvac_unit: "ac",
+  door: "door",
+  window: "window",
 };
 
 const M = 0.01; // cm -> metres
@@ -102,10 +104,11 @@ function Items({
           ICON_MODEL[iconOf(el)] || KIND_MODEL[el.kind] || "box";
         const color = el.color || layerColor(el.layer);
 
-        // vertical placement: ceiling-mounted, wall-mounted, or on the floor
+        // vertical placement: ceiling-mounted, wall-mounted, sill, or on the floor
         let y = 0;
         if (CEILING_MODELS.has(model)) y = ceilingY - 0.05;
         else if (WALL_MODELS.has(model)) y = ceilingY * 0.78;
+        else if (model === "window") y = Number(el.properties?.sill_cm ?? 90) * M;
 
         return (
           <group
@@ -113,7 +116,15 @@ function Items({
             position={[el.x * M, y, el.y * M]}
             rotation={[0, -(el.rotation_deg * Math.PI) / 180, 0]}
           >
-            <FurnitureModel model={model} w={w} d={d} h={hh} color={color} />
+            <FurnitureModel
+              model={model}
+              w={w}
+              d={d}
+              h={hh}
+              color={color}
+              angle={Number(el.properties?.open_angle ?? 90)}
+              swing={el.properties?.swing ?? "left"}
+            />
           </group>
         );
       })}

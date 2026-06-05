@@ -227,6 +227,50 @@ export function PropertiesPanel() {
         </>
       )}
 
+      {el.kind === "door" && canEdit && (
+        <div className="space-y-2 rounded-lg border border-app bg-ink-50 p-2 dark:bg-slate-800/50">
+          <p className="panel-title">Door</p>
+          <label className="block">
+            <span className="text-xs text-ink-500">
+              Open angle: {Math.round(Number(el.properties.open_angle ?? 90))}°
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={120}
+              value={Number(el.properties.open_angle ?? 90)}
+              onChange={(e) =>
+                update({
+                  properties: { ...el.properties, open_angle: Number(e.target.value) },
+                })
+              }
+              className="w-full"
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs text-ink-500">Hinge / swing side</span>
+            <select
+              className="input"
+              value={el.properties.swing ?? "left"}
+              onChange={(e) =>
+                update({ properties: { ...el.properties, swing: e.target.value } })
+              }
+            >
+              <option value="left">Left</option>
+              <option value="right">Right</option>
+            </select>
+          </label>
+        </div>
+      )}
+
+      {el.kind === "window" && canEdit && (
+        <NumberField
+          label="Sill height (3D)"
+          value={Number(el.properties.sill_cm ?? 90)}
+          onChange={(v) => update({ properties: { ...el.properties, sill_cm: v } })}
+        />
+      )}
+
       {isLine && canEdit && (
         <div className="space-y-2">
           <p className="rounded bg-ink-50 px-2 py-1.5 text-xs text-ink-500 dark:bg-slate-800/50">

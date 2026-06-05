@@ -4,7 +4,14 @@ import * as THREE from "three";
 // Each model fills a footprint of w (x) × d (z) and rises from y=0 to y=h,
 // centred on x/z. Scene3D wraps these in the positioned/rotated group.
 
-type Props = { w: number; d: number; h: number; color: string };
+type Props = {
+  w: number;
+  d: number;
+  h: number;
+  color: string;
+  angle?: number; // door open angle (deg)
+  swing?: string; // "left" | "right"
+};
 
 function shade(hex: string, amt: number): string {
   try {
@@ -254,6 +261,52 @@ function Fan({ w, color }: Props) {
   );
 }
 
+function Door({ w, h, color, angle = 90, swing = "left" }: Props) {
+  // leaf hinged at one jamb, swung open by `angle` so walkthroughs look natural
+  const dir = swing === "right" ? -1 : 1;
+  const a = dir * (Math.min(Math.max(angle, 0), 120) * Math.PI) / 180;
+  const hingeX = (dir * -w) / 2;
+  return (
+    <>
+      {/* jambs / frame */}
+      <B s={[0.06, h, 0.14]} p={[-w / 2, h / 2, 0]} color="#e2e2e6" />
+      <B s={[0.06, h, 0.14]} p={[w / 2, h / 2, 0]} color="#e2e2e6" />
+      <B s={[w + 0.12, 0.08, 0.14]} p={[0, h, 0]} color="#e2e2e6" />
+      {/* swinging leaf */}
+      <group position={[hingeX, h / 2, 0]} rotation={[0, a, 0]}>
+        <mesh position={[(dir * w) / 2, 0, 0]} castShadow>
+          <boxGeometry args={[w, h - 0.06, 0.04]} />
+          <meshStandardMaterial color={color} roughness={0.55} />
+        </mesh>
+        {/* handle */}
+        <mesh position={[dir * (w - 0.08), 0, 0.05]} castShadow>
+          <boxGeometry args={[0.03, 0.03, 0.08]} />
+          <meshStandardMaterial color="#c9ccd1" metalness={0.6} roughness={0.3} />
+        </mesh>
+      </group>
+    </>
+  );
+}
+
+function Window({ w, h, color }: Props) {
+  return (
+    <>
+      <B s={[w, h, 0.06]} p={[0, h / 2, 0]} color="#d7dde3" />
+      <mesh position={[0, h / 2, 0]}>
+        <boxGeometry args={[w - 0.1, h - 0.1, 0.02]} />
+        <meshStandardMaterial
+          color={color}
+          transparent
+          opacity={0.4}
+          roughness={0.1}
+          metalness={0.2}
+        />
+      </mesh>
+      <B s={[0.04, h, 0.07]} p={[0, h / 2, 0]} color="#d7dde3" />
+    </>
+  );
+}
+
 function Ac({ w, h, d, color }: Props) {
   return (
     <>
@@ -282,6 +335,8 @@ const BUILDERS: Record<string, (p: Props) => JSX.Element> = {
   pendant: Pendant,
   fan: Fan,
   ac: Ac,
+  door: Door,
+  window: Window,
 };
 
 // model placement metadata

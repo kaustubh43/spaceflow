@@ -1,4 +1,4 @@
-import { Arc, Circle, Group, Line, Rect, Text } from "react-konva";
+import { Circle, Group, Line, Rect, Text } from "react-konva";
 import type { ElementModel } from "@/types";
 import { layerColor } from "@/layers/config";
 
@@ -116,27 +116,39 @@ export function ElementShape({ el, selected, draggable, onSelect, onChange }: Pr
       onTransformEnd={handleTransformEnd}
     >
       {isDoor ? (
-        <>
-          {/* opening gap */}
-          <Rect width={w} height={d} offsetX={w / 2} offsetY={d / 2} fill="#ffffff" />
-          {/* swing arc + leaf, hinged at the left jamb */}
-          <Arc
-            x={-w / 2}
-            y={d / 2}
-            innerRadius={0}
-            outerRadius={w}
-            angle={90}
-            rotation={-90}
-            stroke={selected ? "#4f46e5" : color}
-            strokeWidth={selected ? 2.5 : 1.5}
-            fill="rgba(180,83,9,0.08)"
-          />
-          <Line
-            points={[-w / 2, d / 2, -w / 2, d / 2 - w]}
-            stroke={selected ? "#4f46e5" : color}
-            strokeWidth={selected ? 4 : 3}
-          />
-        </>
+        (() => {
+          const angle = ((Number(el.properties?.open_angle ?? 90)) * Math.PI) / 180;
+          const dir = el.properties?.swing === "right" ? -1 : 1;
+          const hx = (dir * -w) / 2;
+          const hy = d / 2;
+          const steps = 18;
+          const arc: number[] = [];
+          for (let i = 0; i <= steps; i++) {
+            const phi = (angle * i) / steps;
+            arc.push(hx + dir * w * Math.cos(phi), hy - w * Math.sin(phi));
+          }
+          const lx = arc[arc.length - 2];
+          const ly = arc[arc.length - 1];
+          return (
+            <>
+              <Rect width={w} height={d} offsetX={w / 2} offsetY={d / 2} fill="#ffffff" />
+              {/* swing path */}
+              <Line
+                points={arc}
+                stroke={selected ? "#4f46e5" : color}
+                strokeWidth={selected ? 1.5 : 1}
+                dash={[6, 4]}
+              />
+              {/* door leaf at the open angle */}
+              <Line
+                points={[hx, hy, lx, ly]}
+                stroke={selected ? "#4f46e5" : color}
+                strokeWidth={selected ? 4 : 3}
+                lineCap="round"
+              />
+            </>
+          );
+        })()
       ) : isWindow ? (
         <>
           <Rect
