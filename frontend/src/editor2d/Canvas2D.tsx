@@ -6,6 +6,7 @@ import type { Floor } from "@/types";
 import { ElementShape } from "./ElementShape";
 import { stageHandle } from "./stageHandle";
 import { formatLength } from "@/lib/units";
+import { Check, X } from "lucide-react";
 
 interface Props {
   floor: Floor;
@@ -41,6 +42,8 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
 
   // draft points while drawing a wall / room (world cm), plus live cursor point
   const [draft, setDraft] = useState<number[]>([]);
+  const draftRef = useRef<number[]>([]); // always-current copy for finish handlers
+  draftRef.current = draft;
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
   const [measure, setMeasure] = useState<number[]>([]);
 
@@ -123,22 +126,60 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
     setPos({ x: ptr.x - mousePoint.x * next, y: ptr.y - mousePoint.y * next });
   };
 
-  const finishDraft = (kind: "wall" | "room") => {
-    if (draft.length < (kind === "room" ? 6 : 4)) {
+  // drop consecutive duplicate points (a double-click adds two at the same spot)
+  const dedupe = (pts: number[]) => {
+    const out: number[] = [];
+    for (let i = 0; i < pts.length; i += 2) {
+      const x = pts[i];
+      const y = pts[i + 1];
+      if (out.length >= 2 && out[out.length - 2] === x && out[out.length - 1] === y)
+        continue;
+      out.push(x, y);
+    }
+    return out;
+  };
+
+  const finishDraft = () => {
+    const kind = tool === "room" ? "room" : "wall";
+    const pts = dedupe(draftRef.current);
+    const minPts = kind === "room" ? 6 : 4; // room ≥3 verts, wall ≥2 verts
+    if (pts.length < minPts) {
       setDraft([]);
+      setCursor(null);
       return;
     }
     addElement({
       kind,
       layer: "architecture",
       name: kind === "room" ? "Room" : "Wall",
-      points: draft,
+      points: pts,
       color: kind === "wall" ? "#334155" : "#94a3b8",
     });
     setDraft([]);
     setCursor(null);
     setTool("select");
   };
+
+  const cancelDraft = () => {
+    setDraft([]);
+    setCursor(null);
+  };
+
+  // finish with Enter, cancel with Escape while drawing
+  useEffect(() => {
+    if (tool !== "wall" && tool !== "room") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        finishDraft();
+      } else if (e.key === "Escape") {
+        cancelDraft();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tool]);
 
   const onStageMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
     const clickedEmpty = e.target === e.target.getStage();
@@ -164,7 +205,16 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
 
     if (tool === "wall" || tool === "room") {
       const { x, y } = pointer();
-      setDraft((d) => [...d, x, y]);
+      const d = draftRef.current;
+      // clicking on/near the first point closes the shape
+      if (d.length >= (tool === "room" ? 6 : 4)) {
+        const dist = Math.hypot(d[0] - x, d[1] - y);
+        if (dist <= floor.grid_cm * 1.5) {
+          finishDraft();
+          return;
+        }
+      }
+      setDraft((prev) => [...prev, x, y]);
       return;
     }
 
@@ -191,8 +241,7 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
   };
 
   const onStageDblClick = () => {
-    if (tool === "wall") finishDraft("wall");
-    if (tool === "room") finishDraft("room");
+    if (tool === "wall" || tool === "room") finishDraft();
   };
 
   const gridLines = useMemo(() => {
@@ -333,6 +382,31 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
 
       {/* dimensions readout for selected element */}
       <SelectionReadout units={units} />
+
+      {/* drawing toolbar (wall / room) */}
+      {(tool === "wall" || tool === "room") && (
+        <div className="absolute left-1/2 top-3 flex -translate-x-1/2 items-center gap-2 rounded-lg bg-ink-900/90 px-3 py-2 text-sm text-white shadow-lg backdrop-blur dark:bg-slate-700/90">
+          <span className="text-xs">
+            {draft.length === 0
+              ? `Click to start the ${tool}. `
+              : `${draft.length / 2} point${draft.length / 2 > 1 ? "s" : ""} · click to add. `}
+            Double-click, Enter, or click the first point to finish.
+          </span>
+          <button
+            className="btn bg-emerald-500 px-2 py-1 text-white hover:bg-emerald-600 disabled:opacity-40"
+            disabled={draft.length < (tool === "room" ? 6 : 4)}
+            onClick={finishDraft}
+          >
+            <Check className="h-4 w-4" /> Finish
+          </button>
+          <button
+            className="btn bg-white/15 px-2 py-1 text-white hover:bg-white/25"
+            onClick={cancelDraft}
+          >
+            <X className="h-4 w-4" /> Cancel
+          </button>
+        </div>
+      )}
 
       {/* zoom controls */}
       <div className="absolute bottom-3 right-3 flex flex-col gap-1">
