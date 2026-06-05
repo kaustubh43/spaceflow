@@ -1,11 +1,6 @@
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import {
-  Environment,
-  FirstPersonControls,
-  Grid,
-  OrbitControls,
-} from "@react-three/drei";
+import { FirstPersonControls, Grid, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { useEditor } from "@/store/editor";
 import type { ElementModel, Floor } from "@/types";
@@ -94,28 +89,32 @@ export function Scene3D({ floor }: Props) {
   return (
     <div className="relative h-full w-full bg-gradient-to-b from-slate-200 to-slate-400">
       <Canvas shadows camera={{ position: [fw / 2, 6, fh + 4], fov: 55 }}>
-        <ambientLight intensity={0.7} />
+        {/* self-contained lighting — no external HDR dependency, works offline */}
+        <ambientLight intensity={0.75} />
+        <hemisphereLight args={["#ffffff", "#b9c2cf", 0.6]} />
         <directionalLight
-          position={[fw, 10, fh]}
-          intensity={1.1}
+          position={[fw, 12, fh]}
+          intensity={1.2}
           castShadow
           shadow-mapSize={[1024, 1024]}
         />
-        <Environment preset="apartment" />
+        <directionalLight position={[-fw, 8, -fh]} intensity={0.4} />
 
-        <group position={[-center[0], 0, -center[1]]}>
-          {/* floor slab */}
-          <mesh
-            position={[fw / 2, -0.02, fh / 2]}
-            rotation={[-Math.PI / 2, 0, 0]}
-            receiveShadow
-          >
-            <planeGeometry args={[fw, fh]} />
-            <meshStandardMaterial color="#f8fafc" side={THREE.DoubleSide} />
-          </mesh>
-          <Walls floor={floor} els={els} />
-          <Items els={els} center={center} />
-        </group>
+        <Suspense fallback={null}>
+          <group position={[-center[0], 0, -center[1]]}>
+            {/* floor slab */}
+            <mesh
+              position={[fw / 2, -0.02, fh / 2]}
+              rotation={[-Math.PI / 2, 0, 0]}
+              receiveShadow
+            >
+              <planeGeometry args={[fw, fh]} />
+              <meshStandardMaterial color="#f8fafc" side={THREE.DoubleSide} />
+            </mesh>
+            <Walls floor={floor} els={els} />
+            <Items els={els} center={center} />
+          </group>
+        </Suspense>
 
         <Grid
           args={[40, 40]}

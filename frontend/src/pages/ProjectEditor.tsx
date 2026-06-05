@@ -9,6 +9,7 @@ import {
 import { useEditor, type Tool } from "@/store/editor";
 import { Canvas2D } from "@/editor2d/Canvas2D";
 import { Scene3D } from "@/view3d/Scene3D";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LayerPanel } from "@/panels/LayerPanel";
 import { CatalogPanel } from "@/panels/CatalogPanel";
 import { PropertiesPanel } from "@/panels/PropertiesPanel";
@@ -272,7 +273,9 @@ export function ProjectEditor() {
               }
             />
           ) : (
-            <Scene3D floor={floor} />
+            <ErrorBoundary label="3D view unavailable">
+              <Scene3D floor={floor} />
+            </ErrorBoundary>
           )}
         </main>
 
