@@ -1,0 +1,22 @@
+# Persisted Docker volumes (data lives in the repo, but isn't committed)
+/data/postgres/
+/data/uploads/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Node
+node_modules/
+dist/
+.vite/
+*.local
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.log

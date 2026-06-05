@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-idesigner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-idesigner_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-idesigner}
+    volumes:
+      # Repo-local volume: data survives reboots and lives inside the repo
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-idesigner} -d ${POSTGRES_DB:-idesigner}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-idesigner}:${POSTGRES_PASSWORD:-idesigner_dev_password}@db:5432/${POSTGRES_DB:-idesigner}
+      SECRET_KEY: ${SECRET_KEY:-change-me-to-a-long-random-string}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-14}
+      SEED_DEMO: ${SEED_DEMO:-true}
+      DEMO_EMAIL: ${DEMO_EMAIL:-designer@idesigner.app}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-demo1234}
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - ./backend:/app
+      - ./data/uploads:/app/uploads
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
