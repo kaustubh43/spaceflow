@@ -289,20 +289,25 @@ function Door({ w, h, color, angle = 90, swing = "left" }: Props) {
 }
 
 function Window({ w, h, color }: Props) {
+  // thin frame + see-through glass so the wall opening actually reads
+  const f = 0.06;
   return (
     <>
-      <B s={[w, h, 0.06]} p={[0, h / 2, 0]} color="#d7dde3" />
+      <B s={[w, f, 0.1]} p={[0, h - f / 2, 0]} color="#eef1f4" />
+      <B s={[w, f, 0.1]} p={[0, f / 2, 0]} color="#eef1f4" />
+      <B s={[f, h, 0.1]} p={[-w / 2 + f / 2, h / 2, 0]} color="#eef1f4" />
+      <B s={[f, h, 0.1]} p={[w / 2 - f / 2, h / 2, 0]} color="#eef1f4" />
+      <B s={[f * 0.7, h, 0.05]} p={[0, h / 2, 0]} color="#eef1f4" />
       <mesh position={[0, h / 2, 0]}>
-        <boxGeometry args={[w - 0.1, h - 0.1, 0.02]} />
+        <boxGeometry args={[w - 2 * f, h - 2 * f, 0.01]} />
         <meshStandardMaterial
           color={color}
           transparent
-          opacity={0.4}
-          roughness={0.1}
-          metalness={0.2}
+          opacity={0.18}
+          roughness={0.05}
+          metalness={0.1}
         />
       </mesh>
-      <B s={[0.04, h, 0.07]} p={[0, h / 2, 0]} color="#d7dde3" />
     </>
   );
 }
