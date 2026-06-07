@@ -46,6 +46,8 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
   draftRef.current = draft;
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
   const [measure, setMeasure] = useState<number[]>([]);
+  // smart alignment guides shown while dragging an item
+  const [guides, setGuides] = useState<{ x?: number; y?: number }>({});
 
   // register stage for export helpers
   useEffect(() => {
@@ -54,6 +56,13 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
       stageHandle.current = null;
     };
   });
+
+  // clear alignment guides when a drag finishes
+  useEffect(() => {
+    const clear = () => setGuides({});
+    window.addEventListener("mouseup", clear);
+    return () => window.removeEventListener("mouseup", clear);
+  }, []);
 
   // fit container
   useEffect(() => {
@@ -134,6 +143,43 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
     const p = stage.getPointerPosition()!;
     const w = toWorld(p.x, p.y);
     return snapWorld(w.x, w.y);
+  };
+
+  // while dragging an item, snap its centre to align with other items / floor centre
+  const onItemDragMove = (id: number, node: any) => {
+    const thr = 8 / scale;
+    const cx = node.x();
+    const cy = node.y();
+    const targetsX = [floor.width_cm / 2];
+    const targetsY = [floor.height_cm / 2];
+    for (const oid of order) {
+      if (oid === id) continue;
+      const o = elements[oid];
+      if (!o || o.points) continue;
+      targetsX.push(o.x);
+      targetsY.push(o.y);
+    }
+    let gx: number | undefined;
+    let gy: number | undefined;
+    let bestX = thr;
+    let bestY = thr;
+    for (const tx of targetsX) {
+      const dx = Math.abs(tx - cx);
+      if (dx < bestX) {
+        bestX = dx;
+        gx = tx;
+      }
+    }
+    for (const ty of targetsY) {
+      const dy = Math.abs(ty - cy);
+      if (dy < bestY) {
+        bestY = dy;
+        gy = ty;
+      }
+    }
+    if (gx !== undefined) node.x(gx);
+    if (gy !== undefined) node.y(gy);
+    setGuides({ x: gx, y: gy });
   };
 
   const onWheel = (e: Konva.KonvaEventObject<WheelEvent>) => {
@@ -365,6 +411,7 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
                 draggable={canEdit && !locked && tool === "select"}
                 onSelect={() => tool === "select" && !locked && select(id)}
                 onChange={(patch) => updateElement(id, patch)}
+                onDragMove={(node) => onItemDragMove(id, node)}
               />
             );
           })}
@@ -432,6 +479,26 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
                 />
               ))}
             </>
+          )}
+
+          {/* smart alignment guides */}
+          {guides.x !== undefined && (
+            <Line
+              points={[guides.x, -2000, guides.x, floor.height_cm + 2000]}
+              stroke="#ec4899"
+              strokeWidth={1 / scale}
+              dash={[6 / scale, 4 / scale]}
+              listening={false}
+            />
+          )}
+          {guides.y !== undefined && (
+            <Line
+              points={[-2000, guides.y, floor.width_cm + 2000, guides.y]}
+              stroke="#ec4899"
+              strokeWidth={1 / scale}
+              dash={[6 / scale, 4 / scale]}
+              listening={false}
+            />
           )}
 
           {/* measure tool */}

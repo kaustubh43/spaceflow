@@ -84,7 +84,7 @@ the layer system fully extensible — adding a new layer is one enum entry.
 
 ## For contributors / agents
 - **[.github/context.md](.github/context.md)** — architecture, data model, conventions & gotchas (read this first).
-- **[plan.md](plan.md)** — roadmap, known limitations, and what's next.
+- **[.github/plan.md](.github/plan.md)** — roadmap, known limitations, and what's next.
 
 ## Development notes
 

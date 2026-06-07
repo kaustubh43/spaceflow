@@ -18,13 +18,14 @@ For architecture/onboarding see [`.github/context.md`](.github/context.md).
 - Collaboration: comments, snapshots (version history), client‑editable flag.
 - Admin settings (app name, currency, default units), dark mode, PNG/PDF export, tooltips.
 - Dockerised with repo‑local persistence; idempotent demo seed.
+- **Hollow door/window openings** cut into 3D walls (lintels over doors, sill+header for windows).
+- **Smart alignment guides**: dragging an item snaps its centre to other items / floor centre with on‑canvas guides.
+- **Tests + CI**: backend pytest suite + GitHub Actions (backend tests + frontend build).
 
 ## 🔜 Next up (high value)
-- **Wall openings cut in 3D**: doors/windows currently sit on top of solid wall segments — actually subtract
-  the opening from the wall mesh so 3D walls show real gaps.
 - **Wall thickness & auto‑join**: walls are zero‑width polylines (rendered with stroke). Give them real
   thickness, mitre joins at corners, and derive rooms from enclosed walls automatically.
-- **Snap while dragging items** to walls/edges and show alignment guides + on‑canvas dimension chains.
+- **Snap items to walls/edges** and on‑canvas dimension chains (item‑to‑item alignment guides already shipped).
 - **Share links for clients** (tokenized, no account) in addition to full accounts.
 - **Asset/image upload** (textures, mood boards, custom catalog thumbnails) — `uploads/` volume already exists.
 - **Richer 3D models** for appliances/electrical (currently simple blocks): AC vanes, kitchen chimney,
@@ -41,7 +42,7 @@ For architecture/onboarding see [`.github/context.md`](.github/context.md).
 - Audit log of changes; comment mentions/notifications.
 
 ## ⚠️ Known limitations (today)
-- Walls are stroke‑rendered polylines (no true thickness); doors/windows overlay walls rather than cutting them.
+- Walls are stroke‑rendered polylines in 2D (no true thickness). 3D walls now cut openings for doors/windows.
 - 3D camera starts zoomed out; furniture for appliances/electrical falls back to blocks.
 - Snapshot restore replaces all elements on matching floors (no per‑element merge/diff).
 - Initial DB schema is built via `create_all` in migration 0001; keep new changes as explicit migrations.

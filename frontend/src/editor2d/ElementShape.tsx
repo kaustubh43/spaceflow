@@ -8,10 +8,20 @@ interface Props {
   draggable: boolean;
   onSelect: () => void;
   onChange: (patch: Partial<ElementModel>, markDirty?: boolean) => void;
+  onDragMove?: (node: any) => void;
+  onDragStart?: () => void;
 }
 
 // world units = centimetres. x,y are the CENTRE of an element's footprint.
-export function ElementShape({ el, selected, draggable, onSelect, onChange }: Props) {
+export function ElementShape({
+  el,
+  selected,
+  draggable,
+  onSelect,
+  onChange,
+  onDragMove,
+  onDragStart,
+}: Props) {
   const color = el.color || layerColor(el.layer);
 
   // ---- polyline / polygon kinds ----
@@ -112,6 +122,8 @@ export function ElementShape({ el, selected, draggable, onSelect, onChange }: Pr
       draggable={draggable}
       onMouseDown={onSelect}
       onTap={onSelect}
+      onDragStart={() => onDragStart?.()}
+      onDragMove={(e) => onDragMove?.(e.target)}
       onDragEnd={handleDragEnd}
       onTransformEnd={handleTransformEnd}
     >
