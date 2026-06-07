@@ -22,15 +22,17 @@ export function LayerPanel() {
         return (
           <div
             key={layer.type}
-            className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${
-              visible ? "bg-white" : "bg-ink-100 opacity-60"
-            } border border-ink-200`}
+            className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 ${
+              visible
+                ? "border-ink-200 bg-white text-ink-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                : "border-ink-200 bg-ink-100 text-ink-500 opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
+            }`}
           >
             <button onClick={() => toggleLayer(layer.type)} title="Toggle visibility">
               {visible ? (
-                <Eye className="h-4 w-4 text-ink-600" />
+                <Eye className="h-4 w-4 text-ink-600 dark:text-slate-300" />
               ) : (
-                <EyeOff className="h-4 w-4 text-ink-400" />
+                <EyeOff className="h-4 w-4 text-ink-400 dark:text-slate-500" />
               )}
             </button>
             <span
@@ -41,7 +43,7 @@ export function LayerPanel() {
             </span>
             <span className="flex-1 text-sm">{layer.label}</span>
             {counts[layer.type] > 0 && (
-              <span className="rounded bg-ink-100 px-1.5 text-xs text-ink-500">
+              <span className="rounded bg-ink-100 px-1.5 text-xs text-ink-500 dark:bg-slate-700 dark:text-slate-300">
                 {counts[layer.type]}
               </span>
             )}

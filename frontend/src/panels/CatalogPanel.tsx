@@ -62,7 +62,7 @@ export function CatalogPanel() {
       <div className="space-y-3">
         {Object.entries(grouped).map(([cat, items]) => (
           <div key={cat}>
-            <p className="mb-1 text-xs font-semibold text-ink-400">{cat}</p>
+            <p className="mb-1 text-xs font-semibold text-ink-400 dark:text-slate-400">{cat}</p>
             <div className="grid grid-cols-2 gap-1.5">
               {items.map((it) => {
                 const active = placing?.id === it.id;
@@ -72,8 +72,8 @@ export function CatalogPanel() {
                     onClick={() => setPlacing(active ? null : it)}
                     className={`flex items-center gap-2 rounded-lg border p-1.5 text-left text-xs transition ${
                       active
-                        ? "border-brand-500 bg-brand-50"
-                        : "border-ink-200 bg-white hover:bg-ink-100"
+                        ? "border-brand-500 bg-brand-50 text-ink-900 dark:border-brand-500 dark:bg-brand-600/30 dark:text-slate-100"
+                        : "border-ink-200 bg-white text-ink-700 hover:bg-ink-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                     }`}
                     title={`${LAYER_MAP[it.layer].label} · ${it.default_width_cm}×${it.default_depth_cm} cm`}
                   >
