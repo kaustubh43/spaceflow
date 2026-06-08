@@ -40,9 +40,13 @@ A demo project is seeded automatically. Log in with:
 
 - **Projects (one per house)** with multiple **floors / levels**.
 - **2D top‑view editor** (Konva): draw walls & rooms, place catalog items,
-  drag / resize / rotate, snap‑to‑grid, live dimensions, measure tool.
-- **Synced 3D view** (react‑three‑fiber): walls extrude to height, furniture as
-  volumes, orbit camera **and** a first‑person walkthrough (WASD).
+  drag / resize / rotate, snap‑to‑grid, alignment guides, live dimensions, measure tool.
+- **Synced 3D view** (react‑three‑fiber): walls extrude to height with **hollow door/window
+  openings** and recognizable furniture models; **orbit** (double‑click to focus a spot,
+  zoom‑to‑cursor) **and** a first‑person **walkthrough** (pointer‑lock: click to look, WASD, ESC).
+- **Auto‑save + durable undo/redo** — edits save themselves automatically, and the undo
+  history (plus any unsaved changes) survives **closing and reopening** the project.
+- **Dark mode** across the whole app, including the 2D canvas and the 3D view.
 - **Toggleable layers** — Architecture, Furniture, Appliances, Electrical,
   Plumbing, Lighting, HVAC, Networking/Security, False Ceiling, Flooring,
   Annotations. Each can be hidden / locked.
@@ -53,7 +57,8 @@ A demo project is seeded automatically. Log in with:
 - **Bill of Materials** + cost estimate auto‑generated from placed items.
 - **Collaboration** — role‑based access (owner / editor / contributor / viewer),
   comments, and items can be flagged *client‑editable*.
-- **Version snapshots** (save / restore) and **PNG / PDF export**.
+- **Version snapshots** (save / restore), **PNG export**, and a **comprehensive PDF report**
+  (cover + cost summary, floor plan, a 3D angle of every room, and a grouped bill of materials).
 
 ## Roles
 

@@ -48,8 +48,9 @@ frontend/
     store/       auth.ts, editor.ts (the editor brain), settings.ts (app settings + theme + useMoney)
     api/hooks.ts TanStack Query hooks for every endpoint
     layers/config.ts   LAYERS list (the layer system source of truth)
-    editor2d/    Canvas2D.tsx (Konva stage), ElementShape.tsx, stageHandle.ts (PNG/PDF export)
-    view3d/      Scene3D.tsx, FurnitureModels.tsx (parametric models), textures.ts
+    editor2d/    Canvas2D.tsx (Konva stage), ElementShape.tsx, stageHandle.ts (PNG export + live stage handle)
+    view3d/      Scene3D.tsx (+ exported FloorScene reused by the PDF), FurnitureModels.tsx (parametric models), textures.ts
+    export/      report.tsx (comprehensive PDF: plan + per-room 3D angles + grouped BOM)
     panels/      LayerPanel, CatalogPanel, PropertiesPanel, CommentsPanel, Modals (BOM/Floor/Admin/Members/Snapshots)
     pages/       Login, Register, Dashboard, ProjectEditor (assembles everything)
     components/  Tooltip, ErrorBoundary
@@ -81,24 +82,45 @@ frontend/
 ## Key API endpoints (prefix `/api`)
 - `auth/`: register, login, login‑form (OAuth2 for Swagger), refresh, me
 - `projects/` CRUD + `/{id}/members` · `projects/{id}/floors/` CRUD
-- `projects/{id}/floors/{fid}/elements/` CRUD + **`/bulk`** (editor saves all changes in one call)
+- `projects/{id}/floors/{fid}/elements/` CRUD + **`/bulk`** (editor saves all changes in one call; accepts
+  `creates`/`updates`/`deletes`, each create may carry a `client_id`, and returns `{ items, id_map }`)
 - `catalog/` (read) · `.../comments/` CRUD
 - `projects/{id}/bom` (grouped report) · `bom/item-override` (set cost/existing for all elements of a catalog item) ·
   `cost-items/` CRUD (manual BOM lines) · `snapshots/` (+ `/restore`) · `settings` (GET/PUT)
 
 ## Frontend editor architecture
-- **`store/editor.ts` is the brain.** Holds `elements` map + `order`, `dirty`/`deletes` sets, selection,
-  `visibleLayers`/`lockedLayers`, current `tool`, `view` (2d/3d), and **undo/redo** (`past`/`future`
-  history with coalesced edits — see `recordHistory`). `save()` diffs dirty/deletes → `/elements/bulk`.
-  Unsaved elements get **negative temp ids**.
+- **`store/editor.ts` is the brain.** Holds `elements` map + `order`, a `baseline` (last known server
+  state), selection, `visibleLayers`/`lockedLayers`, current `tool`, `view` (2d/3d), and **undo/redo**
+  (`past`/`future` history with coalesced edits — see `recordHistory`). Unsaved elements get **negative temp ids**.
+- **Save = diff against baseline.** `save()` does **not** trust the `dirty`/`deletes` sets for correctness —
+  those are just a derived cache for the unsaved-count UI (recomputed by `refreshDirty`). It diffs current
+  `elements` vs `baseline` into creates/updates/deletes → `/elements/bulk`. This makes undo reconcile correctly:
+  undoing a *creation* (even one already saved) shows up as a delete on the next save.
+- **Auto-save** (`AUTOSAVE_MS`, debounced) fires after edits via `scheduleAutoSave`; toggle with `toggleAutoSave`
+  (header indicator). The manual **Save** button forces an immediate flush.
+- **Undo survives reopen.** State + history persist to `localStorage` per floor (`idesigner_editor_<pid>_<fid>`,
+  see `persistNow`). On `load`, the persisted history/edits are restored **only if** the persisted baseline still
+  matches the freshly fetched server elements (`elementsEqual`); otherwise they're discarded. To keep history ids
+  valid across saves, **`/elements/bulk` returns `{ items, id_map }`** (temp→real ids) and the store remaps every
+  history snapshot via `remapSnap`. `ElementCreate` carries an optional `client_id` so the server can build that map.
+- A dev-only `window.__editor` handle is exposed (stripped from prod builds) for debugging/automated tests.
 - **Canvas2D**: world units = cm; a scaled Konva layer is the "camera" (pan/zoom in component state).
   `snapWorld()` snaps to nearby wall/room vertices then the grid. Drawing walls/rooms uses a draft array,
   finished via Enter / double‑click / clicking the first point / the floating Finish button. Selected
   wall/room shows **draggable vertex handles**.
-- **Scene3D**: extrudes walls (per‑element `properties.wall_height`, else `floor.wall_height_cm`); a room
-  with `wall_height` becomes a railing (balconies). Items render via **FurnitureModels** — parametric
-  primitives chosen by `ICON_MODEL[catalogIcon]` → `KIND_MODEL[kind]` → box fallback. Doors render open
-  (`open_angle`/`swing`), windows at `sill_cm`. Wrapped in an **ErrorBoundary** (WebGL may be unavailable).
+- **Scene3D**: extrudes walls (per‑element `properties.wall_height`, else `floor.wall_height_cm`) and **cuts
+  hollow openings** for doors/windows (lintels over doors, sill+header for windows); a room with `wall_height`
+  becomes a railing (balconies). Items render via **FurnitureModels** — parametric primitives chosen by
+  `ICON_MODEL[catalogIcon]` → `KIND_MODEL[kind]` → box fallback. Doors render open (`open_angle`/`swing`),
+  windows at `sill_cm`. Wrapped in an **ErrorBoundary** (WebGL may be unavailable).
+  - The lights + floor slab + walls + items live in an exported **`FloorScene`** so the live view and the
+    off-screen **PDF report** (`export/report.tsx`) render identical geometry. `FloorScene` stays theme-neutral;
+    only `Scene3D`'s backdrop/grid/overlays follow dark mode (walls kept light).
+  - **Orbit**: double-click-to-focus (pivot tweens to the clicked point) + `zoomToCursor`.
+    **Walkthrough**: `PointerLockControls` (click to look, WASD to walk, ESC to release) — no mouse drift.
+- **Dark mode in editors**: the 2D Konva floor sheet + grid darken and structural greys (incl. seeded wall
+  colours, mapped in `ElementShape.DARK_OVERRIDE`) lift to light so lines stay legible; vivid furniture colours
+  pass through unchanged. Both `Canvas2D` and `Scene3D` read the theme from `store/settings.ts`.
 - **Layers**: `layers/config.ts` `LAYERS` is the single source. Adding a layer = add to `LayerType`
   enum (backend) + a `LAYERS` entry (frontend). Everything else is data‑driven.
 - **Money**: always format via `useMoney()` (respects configured currency); never hardcode ₹/$.
@@ -119,3 +141,5 @@ frontend/
 3. For UI/visual proof, drive headless Chrome over CDP. **WebGL (3D) needs software rendering** in headless:
    launch with `--headless=new --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader --remote-debugging-port=9222`,
    then inject tokens into `localStorage` (`idesigner_access`/`idesigner_refresh`) and screenshot.
+4. For editor-store logic (auto-save, undo, persistence), use the dev-only `window.__editor` handle to drive
+   actions and read `getState()` directly; create a throwaway project via the API and delete it after so the demo stays clean.
