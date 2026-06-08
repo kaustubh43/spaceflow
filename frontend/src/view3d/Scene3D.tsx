@@ -13,6 +13,7 @@ import {
   CEILING_MODELS,
   FurnitureModel,
   WALL_MODELS,
+  WALL_MODEL_Y,
 } from "./FurnitureModels";
 import { Eye, Orbit } from "lucide-react";
 
@@ -21,9 +22,12 @@ const ICON_MODEL: Record<string, string> = {
   sofa: "sofa", chair: "chair", table: "table", bed: "bed", desk: "desk",
   shelf: "cabinet", wardrobe: "cabinet", counter: "counter", tv: "tv",
   fridge: "fridge", washer: "appliance_round", dishwasher: "appliance_round",
+  microwave: "microwave", geyser: "geyser",
   wc: "wc", basin: "basin", shower: "shower", sink: "sink",
-  light: "ceiling_light", spot: "ceiling_light", pendant: "pendant",
-  ac: "ac", fan: "fan",
+  light: "ceiling_light", spot: "ceiling_light", pendant: "pendant", sconce: "sconce",
+  ac: "ac", fan: "fan", exhaust: "exhaust",
+  switchboard: "switchboard", socket: "socket", db: "db",
+  cctv: "cctv", router: "router", speaker: "speaker",
 };
 const KIND_MODEL: Record<string, string> = {
   light: "ceiling_light",
@@ -191,7 +195,7 @@ export function Items({
         // vertical placement: ceiling-mounted, wall-mounted, sill, or on the floor
         let y = 0;
         if (CEILING_MODELS.has(model)) y = ceilingY - 0.05;
-        else if (WALL_MODELS.has(model)) y = ceilingY * 0.78;
+        else if (WALL_MODELS.has(model)) y = ceilingY * (WALL_MODEL_Y[model] ?? 0.78);
         else if (model === "window") y = Number(el.properties?.sill_cm ?? 90) * M;
 
         return (

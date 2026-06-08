@@ -113,7 +113,9 @@ frontend/
   hollow openings** for doors/windows (lintels over doors, sill+header for windows); a room with `wall_height`
   becomes a railing (balconies). Items render via **FurnitureModels** — parametric primitives chosen by
   `ICON_MODEL[catalogIcon]` → `KIND_MODEL[kind]` → box fallback. Doors render open (`open_angle`/`swing`),
-  windows at `sill_cm`. Wrapped in an **ErrorBoundary** (WebGL may be unavailable).
+  windows at `sill_cm`. Wrapped in an **ErrorBoundary** (WebGL may be unavailable). Adding a recognizable model =
+  a builder in `FurnitureModels.tsx` (keyed in `BUILDERS`) + an `ICON_MODEL` entry; wall/ceiling fixtures join
+  `WALL_MODELS`/`CEILING_MODELS`, and wall fixtures get a realistic mount height via `WALL_MODEL_Y`.
   - The lights + floor slab + walls + items live in an exported **`FloorScene`** so the live view and the
     off-screen **PDF report** (`export/report.tsx`) render identical geometry. `FloorScene` stays theme-neutral;
     only `Scene3D`'s backdrop/grid/overlays follow dark mode (walls kept light).

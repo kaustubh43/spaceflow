@@ -321,6 +321,130 @@ function Ac({ w, h, d, color }: Props) {
   );
 }
 
+// floor / counter appliance with a dark glass door + control strip
+function Microwave({ w, d, h, color }: Props) {
+  return (
+    <>
+      <B s={[w, h, d]} p={[0, h / 2, 0]} color={color} rough={0.45} />
+      <B s={[w * 0.6, h * 0.7, 0.02]} p={[-w * 0.13, h * 0.5, d / 2]} color="#0b1220" rough={0.2} />
+      <B s={[w * 0.22, h * 0.7, 0.015]} p={[w * 0.34, h * 0.5, d / 2]} color={shade(color, -0.15)} />
+      <B s={[0.02, h * 0.5, 0.03]} p={[w * 0.16, h * 0.5, d / 2 + 0.02]} color="#d4d4d8" />
+    </>
+  );
+}
+
+// wall-mounted vertical water heater (group is mounted at height; build around y=0)
+function Geyser({ w, h, color }: Props) {
+  const rr = w / 2;
+  return (
+    <>
+      <Cyl r={rr} height={h * 0.9} p={[0, 0, 0]} color={color} />
+      <Cyl r={rr * 0.96} height={0.04} p={[0, h * 0.45, 0]} color={shade(color, -0.12)} />
+      <Cyl r={0.012} height={0.12} p={[rr * 0.4, -h * 0.5, 0]} color="#9ca3af" />
+      <Cyl r={0.012} height={0.12} p={[-rr * 0.4, -h * 0.5, 0]} color="#9ca3af" />
+    </>
+  );
+}
+
+// wall switch plate with button cells (faces +z)
+function Switchboard({ w, h, d, color }: Props) {
+  return (
+    <>
+      <B s={[w * 0.8, h * 0.8, d]} p={[0, 0, 0]} color={shade(color, -0.4)} />
+      <B s={[w, h, 0.02]} p={[0, 0, d / 2]} color="#f5f5f4" />
+      {[-1, 0, 1].map((c, i) => (
+        <B key={i} s={[w * 0.22, h * 0.5, 0.012]} p={[c * w * 0.28, 0, d / 2 + 0.012]} color={color} />
+      ))}
+    </>
+  );
+}
+
+// small wall socket plate
+function Socket({ w, h, d, color }: Props) {
+  return (
+    <>
+      <B s={[w, h, 0.02]} p={[0, 0, d / 2]} color="#f5f5f4" />
+      <B s={[w * 0.55, h * 0.55, 0.012]} p={[0, 0, d / 2 + 0.012]} color={color} />
+      <B s={[0.008, 0.018, 0.012]} p={[-w * 0.1, h * 0.06, d / 2 + 0.02]} color="#3f3f46" />
+      <B s={[0.008, 0.018, 0.012]} p={[w * 0.1, h * 0.06, d / 2 + 0.02]} color="#3f3f46" />
+    </>
+  );
+}
+
+// wall distribution board: enclosure + door + a row of MCB toggles
+function DistributionBoard({ w, h, d, color }: Props) {
+  return (
+    <>
+      <B s={[w, h, d]} p={[0, 0, 0]} color={shade(color, -0.15)} />
+      <B s={[w * 0.92, h * 0.92, 0.02]} p={[0, 0, d / 2]} color={shade(color, 0.12)} />
+      {[-2, -1, 0, 1, 2].map((c, i) => (
+        <B key={i} s={[w * 0.1, h * 0.18, 0.012]} p={[c * w * 0.16, 0, d / 2 + 0.014]} color="#e5e7eb" />
+      ))}
+    </>
+  );
+}
+
+// dome CCTV camera on a mount
+function Cctv({ w, d, h }: Props) {
+  const r = Math.min(w, d) / 2;
+  return (
+    <>
+      <Cyl r={r * 0.6} height={0.03} p={[0, h * 0.2, 0]} color="#e5e7eb" />
+      <mesh position={[0, h * 0.05, 0]} castShadow>
+        <sphereGeometry args={[r, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.2} metalness={0.3} />
+      </mesh>
+      <Cyl r={r * 0.3} height={0.01} p={[0, h * 0.05, r * 0.25]} color="#0b1220" rot={[Math.PI / 2, 0, 0]} />
+    </>
+  );
+}
+
+// Wi-Fi router: flat body with two antennas + status LED
+function Router({ w, d, h }: Props) {
+  return (
+    <>
+      <B s={[w, h * 0.6, d]} p={[0, h * 0.3, 0]} color="#1f2937" rough={0.4} />
+      <Cyl r={0.006} height={h * 1.2} p={[-w * 0.3, h * 0.9, -d * 0.2]} color="#0a0a0a" rot={[0, 0, 0.3]} />
+      <Cyl r={0.006} height={h * 1.2} p={[w * 0.3, h * 0.9, -d * 0.2]} color="#0a0a0a" rot={[0, 0, -0.3]} />
+      <B s={[w * 0.5, 0.006, 0.01]} p={[0, h * 0.55, d / 2]} color="#22c55e" />
+    </>
+  );
+}
+
+// flush ceiling speaker
+function Speaker({ w, d }: Props) {
+  const r = Math.max(w, d) / 2;
+  return (
+    <>
+      <Cyl r={r} height={0.04} p={[0, -0.02, 0]} color="#e5e7eb" />
+      <Cyl r={r * 0.7} height={0.02} p={[0, -0.045, 0]} color="#3f3f46" />
+    </>
+  );
+}
+
+// square louvered exhaust fan (wall, faces +z)
+function Exhaust({ w, h, d, color }: Props) {
+  return (
+    <>
+      <B s={[w, h, d]} p={[0, 0, 0]} color={shade(color, -0.12)} />
+      <B s={[w * 0.92, h * 0.92, 0.01]} p={[0, 0, d / 2]} color="#eef2f7" />
+      {[-1.4, 0, 1.4].map((c, i) => (
+        <B key={i} s={[w * 0.85, h * 0.14, 0.005]} p={[0, c * h * 0.22, d / 2 + 0.008]} color={shade(color, -0.25)} />
+      ))}
+    </>
+  );
+}
+
+// wall sconce: bracket + upward shade
+function Sconce({ w, h, color }: Props) {
+  return (
+    <>
+      <B s={[w * 0.6, h * 0.3, 0.04]} p={[0, -h * 0.22, 0.02]} color="#52525b" />
+      <Cyl r={w * 0.4} height={h * 0.5} p={[0, h * 0.05, 0.05]} color={color} />
+    </>
+  );
+}
+
 const BUILDERS: Record<string, (p: Props) => JSX.Element> = {
   chair: Chair,
   sofa: Sofa,
@@ -342,11 +466,34 @@ const BUILDERS: Record<string, (p: Props) => JSX.Element> = {
   ac: Ac,
   door: Door,
   window: Window,
+  microwave: Microwave,
+  geyser: Geyser,
+  switchboard: Switchboard,
+  socket: Socket,
+  db: DistributionBoard,
+  cctv: Cctv,
+  router: Router,
+  speaker: Speaker,
+  exhaust: Exhaust,
+  sconce: Sconce,
 };
 
 // model placement metadata
-export const CEILING_MODELS = new Set(["ceiling_light", "pendant", "fan"]);
-export const WALL_MODELS = new Set(["ac"]);
+export const CEILING_MODELS = new Set(["ceiling_light", "pendant", "fan", "speaker"]);
+export const WALL_MODELS = new Set([
+  "ac", "geyser", "switchboard", "socket", "db", "cctv", "exhaust", "sconce",
+]);
+// wall-mount height as a fraction of ceiling height (default 0.78 ≈ AC height)
+export const WALL_MODEL_Y: Record<string, number> = {
+  socket: 0.12,
+  switchboard: 0.45,
+  db: 0.5,
+  sconce: 0.6,
+  geyser: 0.74,
+  ac: 0.78,
+  exhaust: 0.8,
+  cctv: 0.88,
+};
 
 export function FurnitureModel({ model, ...props }: Props & { model: string }) {
   const Builder = BUILDERS[model];

@@ -28,13 +28,15 @@ For architecture/onboarding see [`.github/context.md`](.github/context.md).
 - **Wall thickness**: walls carry `properties.thickness_cm` (default 11.5cm) and render at **true scale** in 2D
   (cm‑scaled Konva stroke, mitre joins) and 3D (per‑wall extruded depth), with an editable thickness control in
   the Properties panel. (Auto‑deriving rooms from enclosed wall loops is tracked in the backlog.)
+- **Richer 3D models**: parametric models for microwave, geyser, switchboard, socket, distribution board, CCTV,
+  router, ceiling speaker, exhaust fan, and wall sconce (previously plain blocks / wrong model). Wall‑mounted
+  fixtures sit at realistic heights via a per‑model `WALL_MODEL_Y` map (socket low, switchboard mid, CCTV high).
 
 ## 🔜 Next up (high value)
 - **Snap items to walls/edges** and on‑canvas dimension chains (item‑to‑item alignment guides already shipped).
 - **Share links for clients** (tokenized, no account) in addition to full accounts.
 - **Asset/image upload** (textures, mood boards, custom catalog thumbnails) — `uploads/` volume already exists.
-- **Richer 3D models** for appliances/electrical (currently simple blocks): AC vanes, kitchen chimney,
-  detailed fixtures; optional glTF model slot per catalog item.
+- Optional **glTF model slot** per catalog item (load real meshes for hero pieces).
 
 ## 🧭 Backlog / ideas
 - **Auto‑derive rooms** from enclosed wall loops (detect cycles in the wall graph, fill as room polygons).
@@ -49,7 +51,7 @@ For architecture/onboarding see [`.github/context.md`](.github/context.md).
 
 ## ⚠️ Known limitations (today)
 - Walls render at real thickness now, but rooms are **not auto‑derived** from enclosed wall loops (draw rooms separately). 3D walls cut openings for doors/windows.
-- Furniture for appliances/electrical falls back to blocks where no model is mapped.
+- 3D models are parametric primitives (no glTF yet); a catalog item with an unmapped icon still falls back to a block.
 - Snapshot restore replaces all elements on matching floors (no per‑element merge/diff).
 - Initial DB schema is built via `create_all` in migration 0001; keep new changes as explicit migrations.
 - Headless WebGL needs swiftshader flags (see context.md) — affects automated 3D screenshots only.
