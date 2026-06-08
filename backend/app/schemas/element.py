@@ -26,7 +26,9 @@ class ElementBase(BaseModel):
 
 
 class ElementCreate(ElementBase):
-    pass
+    # the editor's temporary (client-side) id, echoed back in the bulk id_map so
+    # the client can remap its undo history from temp ids to real database ids.
+    client_id: int | None = None
 
 
 class ElementUpdate(BaseModel):
@@ -62,3 +64,10 @@ class BulkElementUpdate(BaseModel):
     creates: list[ElementCreate] = []
     updates: dict[int, ElementUpdate] = {}
     deletes: list[int] = []
+
+
+class BulkElementResult(BaseModel):
+    """Bulk response: the full floor element list plus a temp->real id map."""
+
+    items: list[ElementOut] = []
+    id_map: dict[int, int] = {}

@@ -6,23 +6,39 @@ interface Props {
   el: ElementModel;
   selected: boolean;
   draggable: boolean;
+  dark?: boolean;
   onSelect: () => void;
   onChange: (patch: Partial<ElementModel>, markDirty?: boolean) => void;
   onDragMove?: (node: any) => void;
   onDragStart?: () => void;
 }
 
+// On the dark canvas the structural greys disappear, so lift them to light tints.
+// Vivid layer colours (electrical, plumbing, lighting…) stay as-is.
+const DARK_OVERRIDE: Record<string, string> = {
+  "#334155": "#cbd5e1", // architecture / walls
+  "#475569": "#94a3b8", // appliances
+  "#64748b": "#94a3b8", // false ceiling
+};
+
 // world units = centimetres. x,y are the CENTRE of an element's footprint.
 export function ElementShape({
   el,
   selected,
   draggable,
+  dark,
   onSelect,
   onChange,
   onDragMove,
   onDragStart,
 }: Props) {
-  const color = el.color || layerColor(el.layer);
+  // in dark mode, lift the dark structural greys (incl. seeded wall colours) so
+  // thin wall/partition lines stay legible. Vivid layer colours are untouched.
+  const baseColor = el.color || layerColor(el.layer);
+  const color = dark ? DARK_OVERRIDE[baseColor.toLowerCase()] ?? baseColor : baseColor;
+  const labelFill = dark ? "#cbd5e1" : "#1e293b";
+  const sheetFill = dark ? "#1e293b" : "#ffffff";
+  const itemStroke = dark ? "#64748b" : "#1e293b";
 
   // ---- polyline / polygon kinds ----
   if (el.kind === "wall") {
@@ -52,7 +68,7 @@ export function ElementShape({
           points={pts}
           closed
           fill={selected ? "rgba(79,70,229,0.08)" : "rgba(148,163,184,0.10)"}
-          stroke={selected ? "#4f46e5" : "#94a3b8"}
+          stroke={selected ? "#4f46e5" : dark ? "#64748b" : "#94a3b8"}
           strokeWidth={selected ? 3 : 1.5}
           dash={[10, 6]}
         />
@@ -64,7 +80,7 @@ export function ElementShape({
           text={el.name}
           fontSize={18}
           fontStyle="600"
-          fill="#475569"
+          fill={dark ? "#94a3b8" : "#475569"}
           listening={false}
         />
       </Group>
@@ -143,7 +159,7 @@ export function ElementShape({
           const ly = arc[arc.length - 1];
           return (
             <>
-              <Rect width={w} height={d} offsetX={w / 2} offsetY={d / 2} fill="#ffffff" />
+              <Rect width={w} height={d} offsetX={w / 2} offsetY={d / 2} fill={sheetFill} />
               {/* swing path */}
               <Line
                 points={arc}
@@ -196,7 +212,7 @@ export function ElementShape({
           fill={color}
           opacity={el.is_existing ? 0.5 : 0.85}
           cornerRadius={4}
-          stroke={selected ? "#4f46e5" : el.is_existing ? "#0f766e" : "#1e293b"}
+          stroke={selected ? "#4f46e5" : el.is_existing ? "#0f766e" : itemStroke}
           strokeWidth={selected ? 3 : el.is_existing ? 2 : 1}
           dash={el.is_existing ? [8, 5] : undefined}
         />
@@ -209,7 +225,7 @@ export function ElementShape({
           offsetY={d / 2 + 18}
           align="center"
           fontSize={12}
-          fill="#1e293b"
+          fill={labelFill}
           listening={false}
         />
       )}

@@ -21,6 +21,10 @@ For architecture/onboarding see [`.github/context.md`](.github/context.md).
 - **Hollow door/window openings** cut into 3D walls (lintels over doors, sill+header for windows).
 - **Smart alignment guides**: dragging an item snaps its centre to other items / floor centre with on‑canvas guides.
 - **Tests + CI**: backend pytest suite + GitHub Actions (backend tests + frontend build).
+- **3D camera UX**: orbit **double‑click‑to‑focus** (pivot jumps to the clicked point) + zoom‑to‑cursor; walkthrough now uses **pointer‑lock** (click to look, WASD to walk, ESC to release) — no more mouse drift.
+- **Comprehensive PDF report**: cover + cost summary cards, cropped floor plan, **3D angles of every room** (rendered off‑screen), and a **grouped bill of materials** (per‑category subtotals, project total, existing‑items section). Rupee‑safe text.
+- **Dark‑mode canvas + 3D**: dark floor sheet/backdrop + lifted (light) wall/structural colours and grid; furniture colours preserved; 3D view follows the theme with walls kept light.
+- **Auto‑save + durable undo**: edits auto‑save (debounced) to the server; save now diffs against a server **baseline** (creates/updates/deletes), so every action — including undoing a *creation* — reconciles correctly. Undo history + unsaved edits persist to `localStorage` per floor and are **restored on reopen** (guarded by a baseline match); the bulk endpoint returns a temp→real `id_map` so history stays valid across saves.
 
 ## 🔜 Next up (high value)
 - **Wall thickness & auto‑join**: walls are zero‑width polylines (rendered with stroke). Give them real

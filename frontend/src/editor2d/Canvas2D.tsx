@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Circle, Group, Layer, Line, Rect, Stage, Text, Transformer } from "react-konva";
 import type Konva from "konva";
 import { useEditor } from "@/store/editor";
+import { useSettings } from "@/store/settings";
 import type { Floor } from "@/types";
 import { ElementShape } from "./ElementShape";
 import { stageHandle } from "./stageHandle";
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function Canvas2D({ floor, units, onCommentAt }: Props) {
+  const dark = useSettings((s) => s.theme === "dark");
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage>(null);
   const trRef = useRef<Konva.Transformer>(null);
@@ -334,13 +336,15 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
   const gridLines = useMemo(() => {
     if (!showGrid) return [];
     const step = Math.max(floor.grid_cm * 5, 50);
+    const major = dark ? "#475569" : "#e2e8f0";
+    const minor = dark ? "#334155" : "#f1f5f9";
     const lines: JSX.Element[] = [];
     for (let x = 0; x <= floor.width_cm; x += step) {
       lines.push(
         <Line
           key={`gx${x}`}
           points={[x, 0, x, floor.height_cm]}
-          stroke={x % 100 === 0 ? "#e2e8f0" : "#f1f5f9"}
+          stroke={x % 100 === 0 ? major : minor}
           strokeWidth={1 / scale}
           listening={false}
         />
@@ -351,20 +355,20 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
         <Line
           key={`gy${y}`}
           points={[0, y, floor.width_cm, y]}
-          stroke={y % 100 === 0 ? "#e2e8f0" : "#f1f5f9"}
+          stroke={y % 100 === 0 ? major : minor}
           strokeWidth={1 / scale}
           listening={false}
         />
       );
     }
     return lines;
-  }, [showGrid, floor, scale]);
+  }, [showGrid, floor, scale, dark]);
 
   const draftPreview = cursor ? [...draft, cursor.x, cursor.y] : draft;
   const stageDraggable = tool === "select";
 
   return (
-    <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-ink-100 dark:bg-slate-800">
+    <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-ink-100 dark:bg-slate-950">
       <Stage
         ref={stageRef}
         width={size.w}
@@ -388,12 +392,12 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
           <Rect
             width={floor.width_cm}
             height={floor.height_cm}
-            fill="#ffffff"
-            stroke="#cbd5e1"
+            fill={dark ? "#1e293b" : "#ffffff"}
+            stroke={dark ? "#3b4860" : "#cbd5e1"}
             strokeWidth={2 / scale}
-            shadowColor="#0f172a"
+            shadowColor={dark ? "#000000" : "#0f172a"}
             shadowBlur={20}
-            shadowOpacity={0.08}
+            shadowOpacity={dark ? 0.5 : 0.08}
             listening={false}
           />
           {gridLines}
@@ -407,6 +411,7 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
               <ElementShape
                 key={id}
                 el={el}
+                dark={dark}
                 selected={selectedId === id}
                 draggable={canEdit && !locked && tool === "select"}
                 onSelect={() => tool === "select" && !locked && select(id)}

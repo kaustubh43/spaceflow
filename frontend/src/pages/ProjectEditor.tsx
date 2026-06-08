@@ -21,7 +21,8 @@ import {
   MembersModal,
   SnapshotsModal,
 } from "@/panels/Modals";
-import { exportPDF, exportPNG } from "@/editor2d/stageHandle";
+import { exportPNG } from "@/editor2d/stageHandle";
+import { generateProjectReport } from "@/export/report";
 import { useCreateComment } from "@/api/hooks";
 import { useSettings } from "@/store/settings";
 import { useAuth } from "@/store/auth";
@@ -29,6 +30,7 @@ import { Tooltip } from "@/components/Tooltip";
 import {
   ArrowLeft,
   Box,
+  CloudOff,
   DoorOpen,
   Grid3x3,
   History,
@@ -43,6 +45,7 @@ import {
   RectangleHorizontal,
   Receipt,
   Redo2,
+  RefreshCw,
   Ruler,
   Save,
   Settings,
@@ -78,6 +81,7 @@ export function ProjectEditor() {
   const user = useAuth((s) => s.user);
   const { theme, toggleTheme } = useSettings();
   const [rightTab, setRightTab] = useState<"props" | "comments">("props");
+  const [exporting, setExporting] = useState(false);
   const [modal, setModal] = useState<
     null | "bom" | "members" | "snapshots" | "floor" | "admin"
   >(null);
@@ -287,12 +291,23 @@ export function ProjectEditor() {
               <Image className="h-4 w-4" />
             </button>
           </Tooltip>
-          <Tooltip label="Export plan as PDF">
+          <Tooltip label="Export comprehensive PDF (plan + 3D views + bill of materials)">
             <button
               className="btn-outline py-1"
-              onClick={() => exportPDF(project.name, `${project.name} — ${floor.name}`)}
+              disabled={exporting}
+              onClick={async () => {
+                setExporting(true);
+                try {
+                  await generateProjectReport(project, floor);
+                } catch (e) {
+                  console.error(e);
+                  alert("Could not generate the PDF report.");
+                } finally {
+                  setExporting(false);
+                }
+              }}
             >
-              PDF
+              {exporting ? "Building…" : "PDF"}
             </button>
           </Tooltip>
 
@@ -311,20 +326,42 @@ export function ProjectEditor() {
           )}
 
           {canEdit && (
-            <Tooltip label="Save changes to the server">
-              <button
-                className="btn-primary"
-                onClick={handleSave}
-                disabled={editor.saving || dirtyCount === 0}
+            <>
+              <Tooltip
+                label={
+                  editor.autoSave
+                    ? "Auto-save is on — changes save automatically"
+                    : "Auto-save is off — save manually"
+                }
               >
-                <Save className="h-4 w-4" />
-                {editor.saving
-                  ? "Saving…"
-                  : dirtyCount > 0
-                  ? `Save (${dirtyCount})`
-                  : "Saved"}
-              </button>
-            </Tooltip>
+                <button
+                  className={`btn-outline !px-2 ${editor.autoSave ? "!text-emerald-600 dark:!text-emerald-400" : "!text-ink-400"}`}
+                  onClick={() => editor.toggleAutoSave()}
+                >
+                  {editor.autoSave ? (
+                    <RefreshCw className={`h-4 w-4 ${editor.saving ? "animate-spin" : ""}`} />
+                  ) : (
+                    <CloudOff className="h-4 w-4" />
+                  )}
+                </button>
+              </Tooltip>
+              <Tooltip label="Save changes to the server now">
+                <button
+                  className="btn-primary"
+                  onClick={handleSave}
+                  disabled={editor.saving || dirtyCount === 0}
+                >
+                  <Save className="h-4 w-4" />
+                  {editor.saving
+                    ? "Saving…"
+                    : dirtyCount > 0
+                    ? `Save (${dirtyCount})`
+                    : editor.saveError
+                    ? "Retry"
+                    : "Saved"}
+                </button>
+              </Tooltip>
+            </>
           )}
         </div>
       </header>

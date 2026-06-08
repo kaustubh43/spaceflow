@@ -4,6 +4,7 @@ from sqlalchemy import select
 from app.api.deps import DbDep, require_project_role
 from app.models import Element, Floor, MembershipRole, Project
 from app.schemas.element import (
+    BulkElementResult,
     BulkElementUpdate,
     ElementCreate,
     ElementOut,
@@ -58,7 +59,9 @@ def create_element(
     role = project._membership.role  # type: ignore[attr-defined]
     if role == MembershipRole.contributor:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Contributors cannot add elements")
-    element = Element(floor_id=floor_id, **payload.model_dump())
+    data = payload.model_dump()
+    data.pop("client_id", None)
+    element = Element(floor_id=floor_id, **data)
     db.add(element)
     db.commit()
     db.refresh(element)
@@ -104,19 +107,29 @@ def delete_element(
     db.commit()
 
 
-@router.post("/elements/bulk", response_model=list[ElementOut])
+@router.post("/elements/bulk", response_model=BulkElementResult)
 def bulk_update(
     project_id: int,
     floor_id: int,
     payload: BulkElementUpdate,
     db: DbDep,
     project: Project = Depends(require_project_role(MembershipRole.editor)),
-) -> list[Element]:
-    """Persist a batch of editor changes (creates, updates, deletes) atomically."""
+) -> BulkElementResult:
+    """Persist a batch of editor changes (creates, updates, deletes) atomically.
+
+    Returns the full floor element list plus an ``id_map`` of the client's
+    temporary ids to the new database ids, so the editor can keep its undo
+    history valid across saves (and across reopening the project).
+    """
     _get_floor(db, project_id, floor_id)
 
+    created: list[tuple[int | None, Element]] = []
     for create in payload.creates:
-        db.add(Element(floor_id=floor_id, **create.model_dump()))
+        data = create.model_dump()
+        client_id = data.pop("client_id", None)
+        element = Element(floor_id=floor_id, **data)
+        db.add(element)
+        created.append((client_id, element))
 
     for element_id, update in payload.updates.items():
         element = db.get(Element, element_id)
@@ -130,6 +143,9 @@ def bulk_update(
             db.delete(element)
 
     db.commit()
-    return db.scalars(
+
+    id_map = {cid: el.id for cid, el in created if cid is not None}
+    items = db.scalars(
         select(Element).where(Element.floor_id == floor_id).order_by(Element.z_index)
     ).all()
+    return BulkElementResult(items=items, id_map=id_map)

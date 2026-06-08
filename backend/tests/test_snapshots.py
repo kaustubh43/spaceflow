@@ -11,7 +11,7 @@ def test_snapshot_create_and_restore(client):
         base + "/bulk",
         json={"creates": [{"kind": "item", "layer": "furniture", "name": "Bed", "x": 100}]},
         headers=auth(token),
-    ).json()[0]
+    ).json()["items"][0]
 
     snap = client.post(
         f"/api/projects/{p['id']}/snapshots", json={"label": "v1"}, headers=auth(token)

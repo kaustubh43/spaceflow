@@ -1,8 +1,9 @@
-import { Suspense, useMemo, useState } from "react";
-import { Canvas } from "@react-three/fiber";
-import { FirstPersonControls, Grid, OrbitControls } from "@react-three/drei";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Grid, OrbitControls, PointerLockControls } from "@react-three/drei";
 import * as THREE from "three";
 import { useEditor } from "@/store/editor";
+import { useSettings } from "@/store/settings";
 import { useCatalog } from "@/api/hooks";
 import type { ElementModel, Floor } from "@/types";
 import { layerColor } from "@/layers/config";
@@ -30,13 +31,21 @@ const KIND_MODEL: Record<string, string> = {
   window: "window",
 };
 
-const M = 0.01; // cm -> metres
+export const M = 0.01; // cm -> metres
 
 interface Props {
   floor: Floor;
 }
 
-function Walls({ floor, els }: { floor: Floor; els: ElementModel[] }) {
+// build a catalog-icon resolver from catalog rows
+export function makeIconOf(catalog: { id: number; icon?: string | null }[] | undefined) {
+  const map: Record<number, string> = {};
+  for (const c of catalog || []) map[c.id] = c.icon || "";
+  return (el: ElementModel) =>
+    el.catalog_item_id ? map[el.catalog_item_id] || "" : "";
+}
+
+export function Walls({ floor, els }: { floor: Floor; els: ElementModel[] }) {
   const defaultH = floor.wall_height_cm * M;
   const wallTex = useMemo(() => plasterTexture(), []);
   const THICK = 0.12;
@@ -149,7 +158,7 @@ function Walls({ floor, els }: { floor: Floor; els: ElementModel[] }) {
   );
 }
 
-function Items({
+export function Items({
   els,
   iconOf,
   ceilingY,
@@ -198,24 +207,106 @@ function Items({
   );
 }
 
-export function Scene3D({ floor }: Props) {
-  const { elements, order, visibleLayers } = useEditor();
-  const { data: catalog } = useCatalog();
-  const [mode, setMode] = useState<"orbit" | "walk">("orbit");
+// Orbit with double-click-to-focus: the pivot smoothly moves to whatever point
+// you double-click (a wall corner, a piece of furniture), so you're no longer
+// stuck orbiting the centre of the plan. Wheel zooms toward the cursor.
+function FocusOrbitControls() {
+  const { camera, gl, scene } = useThree();
+  const controls = useRef<any>(null);
+  const desired = useRef<THREE.Vector3 | null>(null);
+  const raycaster = useMemo(() => new THREE.Raycaster(), []);
+
+  useEffect(() => {
+    const dom = gl.domElement;
+    const onDbl = (e: MouseEvent) => {
+      const rect = dom.getBoundingClientRect();
+      const ndc = new THREE.Vector2(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1
+      );
+      raycaster.setFromCamera(ndc, camera);
+      const hits = raycaster.intersectObjects(scene.children, true);
+      if (hits.length) desired.current = hits[0].point.clone();
+    };
+    dom.addEventListener("dblclick", onDbl);
+    return () => dom.removeEventListener("dblclick", onDbl);
+  }, [camera, gl, scene, raycaster]);
+
+  useFrame(() => {
+    const c = controls.current;
+    if (desired.current && c) {
+      c.target.lerp(desired.current, 0.18);
+      if (c.target.distanceTo(desired.current) < 0.01) desired.current = null;
+      c.update();
+    }
+  });
+
+  return (
+    <OrbitControls
+      ref={controls}
+      makeDefault
+      target={[0, 1, 0]}
+      zoomToCursor
+      screenSpacePanning
+      panSpeed={0.9}
+      minDistance={0.8}
+      maxDistance={80}
+      maxPolarAngle={Math.PI / 2.05}
+    />
+  );
+}
+
+// First-person walkthrough: pointer-lock so the view only turns when you
+// actively move the mouse (no continuous drift). WASD / arrows to walk; ESC to
+// release the pointer. Eye height stays locked.
+function Walkthrough({ eyeY = 1.6 }: { eyeY?: number }) {
+  const { camera } = useThree();
+  const keys = useRef<Record<string, boolean>>({});
+  const dir = useMemo(() => new THREE.Vector3(), []);
+  const right = useMemo(() => new THREE.Vector3(), []);
+
+  useEffect(() => {
+    camera.position.y = eyeY;
+    const down = (e: KeyboardEvent) => (keys.current[e.code] = true);
+    const up = (e: KeyboardEvent) => (keys.current[e.code] = false);
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+      keys.current = {};
+    };
+  }, [camera, eyeY]);
+
+  useFrame((_, delta) => {
+    const speed = 3.5 * delta;
+    camera.getWorldDirection(dir);
+    dir.y = 0;
+    dir.normalize();
+    right.crossVectors(dir, camera.up).normalize();
+    const k = keys.current;
+    if (k["KeyW"] || k["ArrowUp"]) camera.position.addScaledVector(dir, speed);
+    if (k["KeyS"] || k["ArrowDown"]) camera.position.addScaledVector(dir, -speed);
+    if (k["KeyA"] || k["ArrowLeft"]) camera.position.addScaledVector(right, -speed);
+    if (k["KeyD"] || k["ArrowRight"]) camera.position.addScaledVector(right, speed);
+    camera.position.y = eyeY; // stay at eye level
+  });
+
+  return <PointerLockControls />;
+}
+
+// Lights + floor slab + walls + items, centred on the world origin. Shared by
+// the live 3D view and the off-screen PDF report renderer so they stay in sync.
+export function FloorScene({
+  floor,
+  els,
+  iconOf,
+}: {
+  floor: Floor;
+  els: ElementModel[];
+  iconOf: (el: ElementModel) => string;
+}) {
   const floorTex = useMemo(() => woodFloorTexture(), []);
-
-  const iconMap = useMemo(() => {
-    const m: Record<number, string> = {};
-    for (const c of catalog || []) m[c.id] = c.icon || "";
-    return m;
-  }, [catalog]);
-  const iconOf = (el: ElementModel) =>
-    el.catalog_item_id ? iconMap[el.catalog_item_id] || "" : "";
-
-  const els = order
-    .map((id) => elements[id])
-    .filter((e) => e && visibleLayers.has(e.layer));
-
   const fw = floor.width_cm * M;
   const fh = floor.height_cm * M;
   const ceilingY = floor.wall_height_cm * M;
@@ -226,80 +317,89 @@ export function Scene3D({ floor }: Props) {
   }, [floorTex, fw, fh]);
 
   return (
-    <div className="relative h-full w-full bg-gradient-to-b from-slate-200 to-slate-400">
-      <Canvas shadows camera={{ position: [fw / 2, 6, fh + 4], fov: 55 }}>
-        {/* self-contained lighting — no external HDR dependency, works offline */}
-        <ambientLight intensity={0.75} />
-        <hemisphereLight args={["#ffffff", "#b9c2cf", 0.6]} />
-        <directionalLight
-          position={[fw, 12, fh]}
-          intensity={1.2}
-          castShadow
-          shadow-mapSize={[1024, 1024]}
-        />
-        <directionalLight position={[-fw, 8, -fh]} intensity={0.4} />
+    <>
+      {/* self-contained lighting — no external HDR dependency, works offline */}
+      <ambientLight intensity={0.75} />
+      <hemisphereLight args={["#ffffff", "#b9c2cf", 0.6]} />
+      <directionalLight
+        position={[fw, 12, fh]}
+        intensity={1.2}
+        castShadow
+        shadow-mapSize={[1024, 1024]}
+      />
+      <directionalLight position={[-fw, 8, -fh]} intensity={0.4} />
 
-        <Suspense fallback={null}>
-          <group position={[-center[0], 0, -center[1]]}>
-            {/* floor slab */}
-            <mesh
-              position={[fw / 2, -0.02, fh / 2]}
-              rotation={[-Math.PI / 2, 0, 0]}
-              receiveShadow
-            >
-              <planeGeometry args={[fw, fh]} />
-              <meshStandardMaterial
-                map={floorTex}
-                roughness={0.7}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
-            <Walls floor={floor} els={els} />
-            <Items els={els} iconOf={iconOf} ceilingY={ceilingY} />
-          </group>
-        </Suspense>
+      <Suspense fallback={null}>
+        <group position={[-center[0], 0, -center[1]]}>
+          {/* floor slab */}
+          <mesh
+            position={[fw / 2, -0.02, fh / 2]}
+            rotation={[-Math.PI / 2, 0, 0]}
+            receiveShadow
+          >
+            <planeGeometry args={[fw, fh]} />
+            <meshStandardMaterial map={floorTex} roughness={0.7} side={THREE.DoubleSide} />
+          </mesh>
+          <Walls floor={floor} els={els} />
+          <Items els={els} iconOf={iconOf} ceilingY={ceilingY} />
+        </group>
+      </Suspense>
+    </>
+  );
+}
+
+export function Scene3D({ floor }: Props) {
+  const { elements, order, visibleLayers } = useEditor();
+  const { data: catalog } = useCatalog();
+  const dark = useSettings((s) => s.theme === "dark");
+  const [mode, setMode] = useState<"orbit" | "walk">("orbit");
+
+  const iconOf = useMemo(() => makeIconOf(catalog), [catalog]);
+
+  const els = order
+    .map((id) => elements[id])
+    .filter((e) => e && visibleLayers.has(e.layer));
+
+  const fw = floor.width_cm * M;
+  const fh = floor.height_cm * M;
+
+  return (
+    <div className="relative h-full w-full bg-gradient-to-b from-slate-200 to-slate-400 dark:from-slate-800 dark:to-slate-950">
+      <Canvas shadows camera={{ position: [fw / 2, 6, fh + 4], fov: 55 }}>
+        <FloorScene floor={floor} els={els} iconOf={iconOf} />
 
         <Grid
           args={[40, 40]}
           cellSize={1}
-          cellColor="#cbd5e1"
-          sectionColor="#94a3b8"
+          cellColor={dark ? "#334155" : "#cbd5e1"}
+          sectionColor={dark ? "#475569" : "#94a3b8"}
           position={[0, -0.03, 0]}
           infiniteGrid
           fadeDistance={40}
         />
 
-        {mode === "orbit" ? (
-          <OrbitControls makeDefault target={[0, 1, 0]} maxPolarAngle={Math.PI / 2.05} />
-        ) : (
-          <FirstPersonControls
-            lookSpeed={0.1}
-            movementSpeed={5}
-            heightMin={1.5}
-            heightMax={1.5}
-          />
-        )}
+        {mode === "orbit" ? <FocusOrbitControls /> : <Walkthrough />}
       </Canvas>
 
-      <div className="absolute left-3 top-3 flex gap-1 rounded-lg bg-white/90 p-1 shadow backdrop-blur">
+      <div className="absolute left-3 top-3 flex gap-1 rounded-lg bg-white/90 p-1 shadow backdrop-blur dark:bg-slate-800/90">
         <button
-          className={`btn px-2 py-1 ${mode === "orbit" ? "bg-brand-600 text-white" : "text-ink-600"}`}
+          className={`btn px-2 py-1 ${mode === "orbit" ? "bg-brand-600 text-white" : "text-ink-600 dark:text-slate-300"}`}
           onClick={() => setMode("orbit")}
         >
           <Orbit className="h-4 w-4" /> Orbit
         </button>
         <button
-          className={`btn px-2 py-1 ${mode === "walk" ? "bg-brand-600 text-white" : "text-ink-600"}`}
+          className={`btn px-2 py-1 ${mode === "walk" ? "bg-brand-600 text-white" : "text-ink-600 dark:text-slate-300"}`}
           onClick={() => setMode("walk")}
         >
           <Eye className="h-4 w-4" /> Walkthrough
         </button>
       </div>
-      {mode === "walk" && (
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded bg-white/90 px-3 py-1 text-xs text-ink-600 shadow">
-          Move with W/A/S/D · look with mouse
-        </div>
-      )}
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded bg-white/90 px-3 py-1 text-xs text-ink-600 shadow dark:bg-slate-800/90 dark:text-slate-300">
+        {mode === "walk"
+          ? "Click to look around · W/A/S/D to walk · ESC to release"
+          : "Double-click to focus a spot · drag to orbit · right-drag to pan · scroll to zoom"}
+      </div>
     </div>
   );
 }
