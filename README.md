@@ -39,7 +39,7 @@ A demo project is seeded automatically. Log in with:
 ## Features
 
 - **Projects (one per house)** with multiple **floors / levels**.
-- **2D top‑view editor** (Konva): draw walls & rooms, place catalog items,
+- **2D top‑view editor** (Konva): draw walls (with real, editable **thickness**) & rooms, place catalog items,
   drag / resize / rotate, snap‑to‑grid, alignment guides, live dimensions, measure tool.
 - **Synced 3D view** (react‑three‑fiber): walls extrude to height with **hollow door/window
   openings** and recognizable furniture models; **orbit** (double‑click to focus a spot,

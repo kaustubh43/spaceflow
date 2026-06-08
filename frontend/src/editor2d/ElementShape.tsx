@@ -1,6 +1,7 @@
 import { Circle, Group, Line, Rect, Text } from "react-konva";
 import type { ElementModel } from "@/types";
 import { layerColor } from "@/layers/config";
+import { DEFAULT_WALL_THICKNESS_CM } from "@/lib/units";
 
 interface Props {
   el: ElementModel;
@@ -42,17 +43,20 @@ export function ElementShape({
 
   // ---- polyline / polygon kinds ----
   if (el.kind === "wall") {
+    // real thickness in world units (cm); the Konva layer is cm-scaled so this
+    // reads as true thickness at any zoom. Mitre joins for clean corners.
+    const thickness = Number(el.properties?.thickness_cm ?? DEFAULT_WALL_THICKNESS_CM);
     return (
       <Line
         name={`el-${el.id}`}
         points={el.points || []}
         stroke={selected ? "#4f46e5" : color}
-        strokeWidth={11}
-        lineCap="round"
-        lineJoin="round"
+        strokeWidth={Math.max(2, thickness)}
+        lineCap="butt"
+        lineJoin="miter"
         onMouseDown={onSelect}
         onTap={onSelect}
-        hitStrokeWidth={20}
+        hitStrokeWidth={Math.max(20, thickness)}
       />
     );
   }

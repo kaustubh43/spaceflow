@@ -8,6 +8,7 @@ import { useCatalog } from "@/api/hooks";
 import type { ElementModel, Floor } from "@/types";
 import { layerColor } from "@/layers/config";
 import { plasterTexture, woodFloorTexture } from "./textures";
+import { DEFAULT_WALL_THICKNESS_CM } from "@/lib/units";
 import {
   CEILING_MODELS,
   FurnitureModel,
@@ -48,8 +49,7 @@ export function makeIconOf(catalog: { id: number; icon?: string | null }[] | und
 export function Walls({ floor, els }: { floor: Floor; els: ElementModel[] }) {
   const defaultH = floor.wall_height_cm * M;
   const wallTex = useMemo(() => plasterTexture(), []);
-  const THICK = 0.12;
-  const CAP = 0.06; // small overlap to fill corner joins
+  const RAILING_THICK = 0.05; // balcony railing (room with wall_height) is thin
 
   const boxes = useMemo(() => {
     // openings (doors/windows) in metres, to be cut out of wall runs
@@ -67,14 +67,21 @@ export function Walls({ floor, els }: { floor: Floor; els: ElementModel[] }) {
         };
       });
 
-    const out: { pos: [number, number, number]; rot: number; len: number; h: number }[] = [];
+    const out: {
+      pos: [number, number, number];
+      rot: number;
+      len: number;
+      h: number;
+      thick: number;
+    }[] = [];
 
     const pushBox = (
       ax: number, az: number, ux: number, uz: number, rot: number, H: number,
-      a: number, b: number, yb: number, yt: number, L: number
+      a: number, b: number, yb: number, yt: number, L: number, thick: number
     ) => {
-      let a2 = a <= 0.001 ? a - CAP : a;
-      let b2 = b >= L - 0.001 ? b + CAP : b;
+      const cap = thick / 2; // extend by half-thickness to fill corner joins
+      let a2 = a <= 0.001 ? a - cap : a;
+      let b2 = b >= L - 0.001 ? b + cap : b;
       const len = b2 - a2;
       const h = yt - yb;
       if (len < 0.02 || h < 0.02) return;
@@ -84,10 +91,11 @@ export function Walls({ floor, els }: { floor: Floor; els: ElementModel[] }) {
         rot,
         len,
         h,
+        thick,
       });
     };
 
-    const addRun = (p: number[], H: number, closed: boolean, cut: boolean) => {
+    const addRun = (p: number[], H: number, closed: boolean, cut: boolean, thick: number) => {
       const count = closed ? p.length : p.length - 2;
       for (let i = 0; i < count; i += 2) {
         const ax = p[i] * M, az = p[i + 1] * M;
@@ -116,21 +124,21 @@ export function Walls({ floor, els }: { floor: Floor; els: ElementModel[] }) {
           : [];
 
         if (ons.length === 0) {
-          pushBox(ax, az, ux, uz, rot, H, 0, L, 0, H, L);
+          pushBox(ax, az, ux, uz, rot, H, 0, L, 0, H, L, thick);
           continue;
         }
         let cursor = 0;
         for (const op of ons) {
-          if (op.t0 > cursor) pushBox(ax, az, ux, uz, rot, H, cursor, op.t0, 0, H, L); // solid before
+          if (op.t0 > cursor) pushBox(ax, az, ux, uz, rot, H, cursor, op.t0, 0, H, L, thick); // solid before
           if (op.o.isDoor) {
-            pushBox(ax, az, ux, uz, rot, H, op.t0, op.t1, Math.min(op.o.top, H), H, L); // lintel
+            pushBox(ax, az, ux, uz, rot, H, op.t0, op.t1, Math.min(op.o.top, H), H, L, thick); // lintel
           } else {
-            pushBox(ax, az, ux, uz, rot, H, op.t0, op.t1, 0, op.o.sill, L); // sill wall
-            pushBox(ax, az, ux, uz, rot, H, op.t0, op.t1, Math.min(op.o.top, H), H, L); // header
+            pushBox(ax, az, ux, uz, rot, H, op.t0, op.t1, 0, op.o.sill, L, thick); // sill wall
+            pushBox(ax, az, ux, uz, rot, H, op.t0, op.t1, Math.min(op.o.top, H), H, L, thick); // header
           }
           cursor = Math.max(cursor, op.t1);
         }
-        if (cursor < L) pushBox(ax, az, ux, uz, rot, H, cursor, L, 0, H, L); // solid after
+        if (cursor < L) pushBox(ax, az, ux, uz, rot, H, cursor, L, 0, H, L, thick); // solid after
       }
     };
 
@@ -138,9 +146,10 @@ export function Walls({ floor, els }: { floor: Floor; els: ElementModel[] }) {
       if (!el.points) continue;
       const custom = Number(el.properties?.wall_height ?? 0);
       if (el.kind === "wall") {
-        addRun(el.points, custom > 0 ? custom * M : defaultH, false, true);
+        const thick = Number(el.properties?.thickness_cm ?? DEFAULT_WALL_THICKNESS_CM) * M;
+        addRun(el.points, custom > 0 ? custom * M : defaultH, false, true, thick);
       } else if (el.kind === "room" && custom > 0) {
-        addRun(el.points, custom * M, true, false); // balcony railing, not cut
+        addRun(el.points, custom * M, true, false, RAILING_THICK); // balcony railing, not cut
       }
     }
     return out;
@@ -150,7 +159,7 @@ export function Walls({ floor, els }: { floor: Floor; els: ElementModel[] }) {
     <>
       {boxes.map((s, i) => (
         <mesh key={i} position={s.pos} rotation={[0, -s.rot, 0]} castShadow receiveShadow>
-          <boxGeometry args={[s.len, s.h, THICK]} />
+          <boxGeometry args={[s.len, s.h, s.thick]} />
           <meshStandardMaterial map={wallTex} roughness={0.92} metalness={0} color="#f4f5f7" />
         </mesh>
       ))}

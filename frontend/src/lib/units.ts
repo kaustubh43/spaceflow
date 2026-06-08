@@ -1,5 +1,8 @@
 // All geometry is stored in centimetres. These helpers format for display.
 
+// default wall thickness (cm) when a wall has no explicit properties.thickness_cm
+export const DEFAULT_WALL_THICKNESS_CM = 11.5;
+
 export function formatLength(cm: number, units: string): string {
   if (units === "in") {
     const inches = cm / 2.54;

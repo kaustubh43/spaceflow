@@ -25,10 +25,11 @@ For architecture/onboarding see [`.github/context.md`](.github/context.md).
 - **Comprehensive PDF report**: cover + cost summary cards, cropped floor plan, **3D angles of every room** (rendered off‑screen), and a **grouped bill of materials** (per‑category subtotals, project total, existing‑items section). Rupee‑safe text.
 - **Dark‑mode canvas + 3D**: dark floor sheet/backdrop + lifted (light) wall/structural colours and grid; furniture colours preserved; 3D view follows the theme with walls kept light.
 - **Auto‑save + durable undo**: edits auto‑save (debounced) to the server; save now diffs against a server **baseline** (creates/updates/deletes), so every action — including undoing a *creation* — reconciles correctly. Undo history + unsaved edits persist to `localStorage` per floor and are **restored on reopen** (guarded by a baseline match); the bulk endpoint returns a temp→real `id_map` so history stays valid across saves.
+- **Wall thickness**: walls carry `properties.thickness_cm` (default 11.5cm) and render at **true scale** in 2D
+  (cm‑scaled Konva stroke, mitre joins) and 3D (per‑wall extruded depth), with an editable thickness control in
+  the Properties panel. (Auto‑deriving rooms from enclosed wall loops is tracked in the backlog.)
 
 ## 🔜 Next up (high value)
-- **Wall thickness & auto‑join**: walls are zero‑width polylines (rendered with stroke). Give them real
-  thickness, mitre joins at corners, and derive rooms from enclosed walls automatically.
 - **Snap items to walls/edges** and on‑canvas dimension chains (item‑to‑item alignment guides already shipped).
 - **Share links for clients** (tokenized, no account) in addition to full accounts.
 - **Asset/image upload** (textures, mood boards, custom catalog thumbnails) — `uploads/` volume already exists.
@@ -36,6 +37,7 @@ For architecture/onboarding see [`.github/context.md`](.github/context.md).
   detailed fixtures; optional glTF model slot per catalog item.
 
 ## 🧭 Backlog / ideas
+- **Auto‑derive rooms** from enclosed wall loops (detect cycles in the wall graph, fill as room polygons).
 - Real‑time multi‑user editing (WebSocket/CRDT) so designer + client can co‑edit live.
 - PDF export upgrade: title block, dimensioned drawings, per‑layer sheets, BOM appendix.
 - Cost templates & rate cards per region; export BOM to Excel/CSV; quote vs. final tracking.
@@ -46,8 +48,8 @@ For architecture/onboarding see [`.github/context.md`](.github/context.md).
 - Audit log of changes; comment mentions/notifications.
 
 ## ⚠️ Known limitations (today)
-- Walls are stroke‑rendered polylines in 2D (no true thickness). 3D walls now cut openings for doors/windows.
-- 3D camera starts zoomed out; furniture for appliances/electrical falls back to blocks.
+- Walls render at real thickness now, but rooms are **not auto‑derived** from enclosed wall loops (draw rooms separately). 3D walls cut openings for doors/windows.
+- Furniture for appliances/electrical falls back to blocks where no model is mapped.
 - Snapshot restore replaces all elements on matching floors (no per‑element merge/diff).
 - Initial DB schema is built via `create_all` in migration 0001; keep new changes as explicit migrations.
 - Headless WebGL needs swiftshader flags (see context.md) — affects automated 3D screenshots only.

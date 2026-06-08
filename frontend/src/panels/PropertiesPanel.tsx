@@ -1,5 +1,6 @@
 import { useEditor } from "@/store/editor";
 import { LAYERS, LAYER_MAP } from "@/layers/config";
+import { DEFAULT_WALL_THICKNESS_CM } from "@/lib/units";
 import type { ElementModel, SwitchButton } from "@/types";
 import { Plus, RotateCcw, RotateCw, Trash2 } from "lucide-react";
 
@@ -295,6 +296,20 @@ export function PropertiesPanel() {
               update({ properties: { ...el.properties, wall_height: v } })
             }
           />
+          {el.kind === "wall" && (
+            <NumberField
+              label="Wall thickness (cm)"
+              value={Number(el.properties.thickness_cm ?? DEFAULT_WALL_THICKNESS_CM)}
+              onChange={(v) =>
+                update({
+                  properties: {
+                    ...el.properties,
+                    thickness_cm: Math.max(2, v),
+                  },
+                })
+              }
+            />
+          )}
           <p className="text-xs text-ink-400">
             Set a low height (e.g. 100) to model a balcony railing or parapet.
           </p>

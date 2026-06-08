@@ -66,7 +66,8 @@ frontend/
     - Rect/point items use `x, y` = **CENTRE of the footprint**, `width_cm` × `depth_cm`, `height_cm`, `rotation_deg`.
     - Polyline/polygon items (wall, room, plumbing_line) use `points` = flat `[x1,y1,x2,y2,…]`. `x/y` ignored.
   - `properties` (JSONB) holds kind‑specific data: switchboard `buttons[]`+`circuit`, door `open_angle`+`swing`,
-    window `sill_cm`, wall/room `wall_height` (3D), appliance `power_w`, etc.
+    window `sill_cm`, wall/room `wall_height` (3D), wall `thickness_cm` (default `DEFAULT_WALL_THICKNESS_CM`=11.5,
+    rendered to real scale in 2D + 3D), appliance `power_w`, etc.
   - `is_existing` (client already owns it → shown but **not charged** in BOM), `unit_cost_override`,
     `catalog_item_id`, `client_editable`.
 - **CatalogItem**: reusable preset (name, category, layer, kind, default dims, color, **icon**, unit_cost).
