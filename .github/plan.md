@@ -44,10 +44,9 @@ For architecture/onboarding see [`.github/context.md`](.github/context.md).
   `/uploads`**. An **Assets** modal (thumbnail grid, multi‑upload, delete) opens from a header button.
 
 ## 🔜 Next up (high value)
-- On‑canvas **dimension chains** (item‑to‑item / item‑to‑wall measurements while editing).
-- **Share links for clients** (tokenized, no account) in addition to full accounts.
-- **Asset/image upload** (textures, mood boards, custom catalog thumbnails) — `uploads/` volume already exists.
+- On‑canvas **dimension chains** (item‑to‑item / item‑to‑wall clearance measurements while editing).
 - Optional **glTF model slot** per catalog item (load real meshes for hero pieces).
+- Use uploaded **assets as textures / custom catalog thumbnails** (upload + storage already shipped).
 
 ## 🧭 Backlog / ideas
 - **Auto‑derive rooms** from enclosed wall loops (detect cycles in the wall graph, fill as room polygons).

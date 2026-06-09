@@ -81,8 +81,10 @@ data/      repo-local Docker volumes (postgres + uploads) — git-ignored
 ```
 
 ### Backend layout
-- `app/models` – SQLAlchemy models (users, projects, floors, elements, catalog, comments, snapshots)
-- `app/api/routes` – auth, projects, floors, elements, catalog, comments, reports (BOM + snapshots)
+- `app/models` – SQLAlchemy models (users, projects, floors, elements, catalog, comments, snapshots,
+  cost items, app settings, share links, assets)
+- `app/api/routes` – auth, projects, floors, elements, catalog, comments, reports (BOM + snapshots),
+  settings, share (authed + public view‑only), assets (image upload, served from `/uploads`)
 - `app/seed.py` – idempotent catalog + demo‑house seed (runs on boot via `entrypoint.sh`)
 
 ### Data model in one line

@@ -53,7 +53,7 @@ frontend/
     editor2d/    Canvas2D.tsx (Konva stage), ElementShape.tsx, stageHandle.ts (PNG export + live stage handle)
     view3d/      Scene3D.tsx (+ exported FloorScene reused by the PDF), FurnitureModels.tsx (parametric models), textures.ts
     export/      report.tsx (comprehensive PDF: plan + per-room 3D angles + grouped BOM)
-    panels/      LayerPanel, CatalogPanel, PropertiesPanel, CommentsPanel, Modals (BOM/Floor/Admin/Members/Snapshots/Share)
+    panels/      LayerPanel, CatalogPanel, PropertiesPanel, CommentsPanel, Modals (BOM/Floor/Admin/Members/Snapshots/Share/Assets)
     pages/       Login, Register, Dashboard, ProjectEditor, SharedView (public read-only viewer)
     components/  Tooltip, ErrorBoundary
 ```
