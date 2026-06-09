@@ -38,7 +38,7 @@ export function ElementShape({
   const baseColor = el.color || layerColor(el.layer);
   const color = dark ? DARK_OVERRIDE[baseColor.toLowerCase()] ?? baseColor : baseColor;
   const labelFill = dark ? "#cbd5e1" : "#1e293b";
-  const sheetFill = dark ? "#1e293b" : "#ffffff";
+  const sheetFill = dark ? "#141f3a" : "#ffffff";
   const itemStroke = dark ? "#64748b" : "#1e293b";
 
   // ---- polyline / polygon kinds ----

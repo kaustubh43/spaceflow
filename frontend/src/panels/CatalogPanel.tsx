@@ -73,7 +73,7 @@ export function CatalogPanel() {
                     className={`flex items-center gap-2 rounded-lg border p-1.5 text-left text-xs transition ${
                       active
                         ? "border-brand-500 bg-brand-50 text-ink-900 dark:border-brand-500 dark:bg-brand-600/30 dark:text-slate-100"
-                        : "border-ink-200 bg-white text-ink-700 hover:bg-ink-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                        : "border-ink-200 bg-white text-ink-700 hover:bg-ink-100 dark:border-navy-700 dark:bg-navy-800 dark:text-slate-200 dark:hover:bg-navy-700"
                     }`}
                     title={`${LAYER_MAP[it.layer].label} · ${it.default_width_cm}×${it.default_depth_cm} cm`}
                   >

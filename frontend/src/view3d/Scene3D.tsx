@@ -464,7 +464,7 @@ export function Scene3D({ floor, floors, floorEls }: Props) {
   const camZ = showBuilding ? fh + totalH : fh + 4;
 
   return (
-    <div className="relative h-full w-full bg-gradient-to-b from-slate-200 to-slate-400 dark:from-slate-800 dark:to-slate-950">
+    <div className="relative h-full w-full bg-gradient-to-b from-slate-200 to-slate-400 dark:from-navy-800 dark:to-navy-950">
       <Canvas shadows camera={{ position: [fw / 2, camY, camZ], fov: 55 }}>
         {showBuilding ? (
           sortedFloors.map((f, i) => {
@@ -505,8 +505,8 @@ export function Scene3D({ floor, floors, floorEls }: Props) {
         <Grid
           args={[40, 40]}
           cellSize={1}
-          cellColor={dark ? "#334155" : "#cbd5e1"}
-          sectionColor={dark ? "#475569" : "#94a3b8"}
+          cellColor={dark ? "#2a3a5e" : "#cbd5e1"}
+          sectionColor={dark ? "#3e5184" : "#94a3b8"}
           position={[0, -0.03, 0]}
           infiniteGrid
           fadeDistance={40}
@@ -515,7 +515,7 @@ export function Scene3D({ floor, floors, floorEls }: Props) {
         {mode === "orbit" ? <FocusOrbitControls /> : <Walkthrough />}
       </Canvas>
 
-      <div className="absolute left-3 top-3 flex gap-1 rounded-lg bg-white/90 p-1 shadow backdrop-blur dark:bg-slate-800/90">
+      <div className="absolute left-3 top-3 flex gap-1 rounded-lg bg-white/90 p-1 shadow backdrop-blur dark:bg-navy-800/90">
         <button
           className={`btn px-2 py-1 ${mode === "orbit" ? "bg-brand-600 text-white" : "text-ink-600 dark:text-slate-300"}`}
           onClick={() => setMode("orbit")}
@@ -538,7 +538,7 @@ export function Scene3D({ floor, floors, floorEls }: Props) {
           </button>
         )}
       </div>
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded bg-white/90 px-3 py-1 text-xs text-ink-600 shadow dark:bg-slate-800/90 dark:text-slate-300">
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded bg-white/90 px-3 py-1 text-xs text-ink-600 shadow dark:bg-navy-800/90 dark:text-slate-300">
         {mode === "walk"
           ? "Click to look around · W/A/S/D to walk · ESC to release"
           : "Double-click to focus a spot · drag to orbit · right-drag to pan · scroll to zoom"}

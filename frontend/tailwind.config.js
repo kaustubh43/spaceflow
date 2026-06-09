@@ -12,6 +12,21 @@ export default {
           600: "#4f46e5",
           700: "#4338ca",
         },
+        // dark-mode surface ramp: blue-rich navy (not near-black slate) with
+        // clear value steps between bg → surface → raised → border for depth.
+        navy: {
+          950: "#0a1122", // app background (deep navy)
+          900: "#141f3a", // panels / surfaces (clearly lifted off the bg)
+          850: "#1b2747",
+          800: "#22305a", // raised elements: inputs, buttons, overlays
+          700: "#2e3e69", // borders / hover
+          600: "#3e5184",
+          500: "#5167a0",
+          400: "#8290b6",
+          300: "#a9b4d2",
+          200: "#cbd3e6",
+          100: "#e5e9f3",
+        },
         ink: {
           50: "#f8fafc",
           900: "#0f172a",

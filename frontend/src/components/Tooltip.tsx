@@ -32,7 +32,7 @@ export function Tooltip({
       {show && (
         <span
           role="tooltip"
-          className={`pointer-events-none absolute z-50 whitespace-nowrap rounded-md bg-ink-900 px-2 py-1 text-xs font-medium text-white shadow-lg dark:bg-slate-700 ${sideClasses[side]}`}
+          className={`pointer-events-none absolute z-50 whitespace-nowrap rounded-md bg-ink-900 px-2 py-1 text-xs font-medium text-white shadow-lg dark:bg-navy-700 ${sideClasses[side]}`}
         >
           {label}
         </span>

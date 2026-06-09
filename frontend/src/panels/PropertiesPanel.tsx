@@ -229,7 +229,7 @@ export function PropertiesPanel() {
       )}
 
       {el.kind === "door" && canEdit && (
-        <div className="space-y-2 rounded-lg border border-app bg-ink-50 p-2 dark:bg-slate-800/50">
+        <div className="space-y-2 rounded-lg border border-app bg-ink-50 p-2 dark:bg-navy-800/50">
           <p className="panel-title">Door</p>
           <label className="block">
             <span className="text-xs text-ink-500">
@@ -274,7 +274,7 @@ export function PropertiesPanel() {
 
       {isLine && canEdit && (
         <div className="space-y-2">
-          <p className="rounded bg-ink-50 px-2 py-1.5 text-xs text-ink-500 dark:bg-slate-800/50">
+          <p className="rounded bg-ink-50 px-2 py-1.5 text-xs text-ink-500 dark:bg-navy-800/50">
             Drag the corner handles on the canvas to reshape or extend. Corners snap
             to the grid and to nearby room/wall corners.
           </p>
@@ -395,7 +395,7 @@ export function PropertiesPanel() {
       )}
 
       {canEdit && el.catalog_item_id && (
-        <div className="space-y-2 rounded-lg border border-app bg-ink-50 p-2 dark:bg-slate-800/50">
+        <div className="space-y-2 rounded-lg border border-app bg-ink-50 p-2 dark:bg-navy-800/50">
           <p className="panel-title">Costing</p>
           <label className="flex items-center gap-2 text-sm">
             <input

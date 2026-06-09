@@ -389,8 +389,8 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
   const gridLines = useMemo(() => {
     if (!showGrid) return [];
     const step = Math.max(floor.grid_cm * 5, 50);
-    const major = dark ? "#475569" : "#e2e8f0";
-    const minor = dark ? "#334155" : "#f1f5f9";
+    const major = dark ? "#2e3e69" : "#e2e8f0";
+    const minor = dark ? "#1f2c4d" : "#f1f5f9";
     const lines: JSX.Element[] = [];
     for (let x = 0; x <= floor.width_cm; x += step) {
       lines.push(
@@ -421,7 +421,7 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
   const stageDraggable = tool === "select";
 
   return (
-    <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-ink-100 dark:bg-slate-950">
+    <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-ink-100 dark:bg-navy-950">
       <Stage
         ref={stageRef}
         width={size.w}
@@ -445,8 +445,8 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
           <Rect
             width={floor.width_cm}
             height={floor.height_cm}
-            fill={dark ? "#1e293b" : "#ffffff"}
-            stroke={dark ? "#3b4860" : "#cbd5e1"}
+            fill={dark ? "#141f3a" : "#ffffff"}
+            stroke={dark ? "#2e3e69" : "#cbd5e1"}
             strokeWidth={2 / scale}
             shadowColor={dark ? "#000000" : "#0f172a"}
             shadowBlur={20}
@@ -603,7 +603,7 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
 
       {/* drawing toolbar (wall / room) */}
       {(tool === "wall" || tool === "room") && (
-        <div className="absolute left-1/2 top-3 flex -translate-x-1/2 items-center gap-2 rounded-lg bg-ink-900/90 px-3 py-2 text-sm text-white shadow-lg backdrop-blur dark:bg-slate-700/90">
+        <div className="absolute left-1/2 top-3 flex -translate-x-1/2 items-center gap-2 rounded-lg bg-ink-900/90 px-3 py-2 text-sm text-white shadow-lg backdrop-blur dark:bg-navy-700/90">
           <span className="text-xs">
             {draft.length === 0
               ? `Click to start the ${tool}. `

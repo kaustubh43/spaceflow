@@ -57,7 +57,7 @@ export function Dashboard() {
 
   return (
     <div className="app-bg min-h-full">
-      <header className="sticky top-0 z-10 border-b border-app bg-white/90 backdrop-blur dark:bg-slate-900/90">
+      <header className="sticky top-0 z-10 border-b border-app bg-white/90 backdrop-blur dark:bg-navy-900/90">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-2">
             <div className="rounded-lg bg-brand-600 p-1.5 text-white">
@@ -69,7 +69,7 @@ export function Dashboard() {
             <span className="flex items-center gap-1.5 text-sm text-ink-600 dark:text-slate-300">
               <UserIcon className="h-4 w-4" />
               {user?.full_name}
-              <span className="rounded bg-ink-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">
+              <span className="rounded bg-ink-100 px-1.5 py-0.5 text-xs dark:bg-navy-800">
                 {user?.role}
               </span>
             </span>

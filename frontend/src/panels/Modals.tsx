@@ -247,7 +247,7 @@ export function BOMModal({
 
       {/* Add rows */}
       {canEdit && (
-        <div className="space-y-2 rounded-lg border border-app bg-ink-50 p-3 dark:bg-slate-800/50">
+        <div className="space-y-2 rounded-lg border border-app bg-ink-50 p-3 dark:bg-navy-800/50">
           <p className="panel-title">Add to estimate (no drawing needed)</p>
           {/* add from catalog */}
           <div className="flex items-end gap-2">
@@ -603,7 +603,7 @@ export function MembersModal({
               <span className="text-ink-400">{m.user.email}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="rounded bg-ink-100 px-2 py-0.5 text-xs dark:bg-slate-800">
+              <span className="rounded bg-ink-100 px-2 py-0.5 text-xs dark:bg-navy-800">
                 {m.role}
               </span>
               {m.role !== "owner" && (
@@ -816,7 +816,7 @@ export function AssetsModal({
                 <img
                   src={`${API_ORIGIN}${a.url}`}
                   alt={a.original_name}
-                  className="h-32 w-full bg-ink-50 object-cover dark:bg-slate-800"
+                  className="h-32 w-full bg-ink-50 object-cover dark:bg-navy-800"
                 />
               </a>
               {canEdit && (

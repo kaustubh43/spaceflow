@@ -253,7 +253,7 @@ export function ProjectEditor() {
             <>
               <Tooltip label="Toggle grid">
                 <button
-                  className={`btn-outline !px-2 ${editor.showGrid ? "!bg-ink-100 dark:!bg-slate-700" : ""}`}
+                  className={`btn-outline !px-2 ${editor.showGrid ? "!bg-ink-100 dark:!bg-navy-700" : ""}`}
                   onClick={editor.toggleGrid}
                 >
                   <Grid3x3 className="h-4 w-4" />
@@ -261,7 +261,7 @@ export function ProjectEditor() {
               </Tooltip>
               <Tooltip label="Snap to grid">
                 <button
-                  className={`btn-outline !px-2 ${editor.snap ? "!bg-ink-100 dark:!bg-slate-700" : ""}`}
+                  className={`btn-outline !px-2 ${editor.snap ? "!bg-ink-100 dark:!bg-navy-700" : ""}`}
                   onClick={editor.toggleSnap}
                 >
                   <Magnet className="h-4 w-4" />
@@ -398,7 +398,7 @@ export function ProjectEditor() {
                         className={`btn aspect-square w-full !p-0 ${
                           editor.tool === t.id
                             ? "bg-brand-600 text-white"
-                            : "surface text-ink-600 hover:bg-ink-100 dark:text-slate-300 dark:hover:bg-slate-700"
+                            : "surface text-ink-600 hover:bg-ink-100 dark:text-slate-300 dark:hover:bg-navy-700"
                         }`}
                         onClick={() => editor.setTool(t.id)}
                       >
