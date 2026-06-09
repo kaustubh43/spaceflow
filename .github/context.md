@@ -34,13 +34,15 @@ backend/
     core/        config.py (pydantic-settings), security.py (JWT + bcrypt)
     db/          base.py (Base + TimestampMixin), session.py (engine, get_db)
     models/      user, project (+ProjectMembership), floor, element, catalog,
-                 collaboration (Comment, Snapshot), cost (CostItem), settings (AppSettings), share (ShareLink), enums
+                 collaboration (Comment, Snapshot), cost (CostItem), settings (AppSettings), share (ShareLink),
+                 asset (Asset), enums
     schemas/     pydantic request/response models
     api/
       deps.py    get_current_user, require_project_role(min_role) dependency factory
-      routes/    auth, projects, floors, elements, catalog, comments, reports, settings, share (authed + public_router)
+      routes/    auth, projects, floors, elements, catalog, comments, reports, settings, share (authed + public_router), assets
     seed.py      idempotent demo seed (catalog + sample house); seed_data.py = CATALOG presets
-  alembic/versions/  0001_initial (create_all), 0002_cost_existing, 0003_app_settings, 0004_share_links
+  alembic/versions/  0001_initial (create_all), 0002_cost_existing, 0003_app_settings, 0004_share_links, 0005_assets
+  main.py        includes routers + mounts StaticFiles at /uploads (serves uploaded assets)
   entrypoint.sh  alembic upgrade head → python -m app.seed → uvicorn
 frontend/
   src/
@@ -58,8 +60,8 @@ frontend/
 
 ## Data model (the important part)
 - **Project** → has many **Floor** → has many **Element**. A Project also has **ProjectMembership**
-  (user↔role), **CostItem** (manual BOM lines), **Snapshot** (version history), and **ShareLink** (tokenized
-  view-only public access). **Comment** hangs off a Floor/Element.
+  (user↔role), **CostItem** (manual BOM lines), **Snapshot** (version history), **ShareLink** (tokenized
+  view-only public access), and **Asset** (uploaded reference images). **Comment** hangs off a Floor/Element.
 - **Element is the generic unit** of everything on a plan, distinguished by `kind` + `layer`:
   - `kind`: wall, room, door, window, item, switchboard, electrical_point, plumbing_line,
     plumbing_fixture, light, hvac_unit, network_point, annotation.
@@ -90,6 +92,8 @@ frontend/
 - `projects/{id}/share` (create/list/revoke share links, editor+) · **`shared/{token}`** (public, no auth):
   project meta + floors, and `shared/{token}/floors/{fid}/elements` — scoped to the token's project, **no costs**;
   revoked/invalid token → 404
+- `projects/{id}/assets` (upload/list/delete reference images, multipart, images ≤10 MB) — files served at
+  **`/uploads/{project_id}/{uuid}.{ext}`** by a StaticFiles mount (not under `/api`); `AssetOut.url` is that path
 - `projects/{id}/bom` (grouped report) · `bom/item-override` (set cost/existing for all elements of a catalog item) ·
   `cost-items/` CRUD (manual BOM lines) · `snapshots/` (+ `/restore`) · `settings` (GET/PUT)
 

@@ -39,6 +39,9 @@ For architecture/onboarding see [`.github/context.md`](.github/context.md).
   elements, scoped to the token, **no costs**); `/catalog` made public so the viewer resolves 3D models. A
   **Share** button opens a modal to generate/copy/revoke links; a public `/shared/:token` route renders a
   read‑only `SharedView` (2D + 3D, layer toggles, floor switcher) with no editing. Revoked/invalid → friendly 404.
+- **Asset / image upload** (reference images / mood board): `Asset` model + migration 0005; `POST/GET/DELETE
+  /projects/{id}/assets` (multipart, images ≤10 MB, uuid filenames); files served by a **StaticFiles mount at
+  `/uploads`**. An **Assets** modal (thumbnail grid, multi‑upload, delete) opens from a header button.
 
 ## 🔜 Next up (high value)
 - On‑canvas **dimension chains** (item‑to‑item / item‑to‑wall measurements while editing).

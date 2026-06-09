@@ -16,6 +16,7 @@ import { PropertiesPanel } from "@/panels/PropertiesPanel";
 import { CommentsPanel } from "@/panels/CommentsPanel";
 import {
   AdminSettingsModal,
+  AssetsModal,
   BOMModal,
   FloorSettingsModal,
   MembersModal,
@@ -36,6 +37,7 @@ import {
   Grid3x3,
   History,
   Image,
+  Images,
   Link2,
   Magnet,
   MessageSquare,
@@ -85,7 +87,7 @@ export function ProjectEditor() {
   const [rightTab, setRightTab] = useState<"props" | "comments">("props");
   const [exporting, setExporting] = useState(false);
   const [modal, setModal] = useState<
-    null | "bom" | "members" | "snapshots" | "floor" | "admin" | "share"
+    null | "bom" | "members" | "snapshots" | "floor" | "admin" | "share" | "assets"
   >(null);
 
   const createComment = useCreateComment(projectId, floorId ?? 0);
@@ -268,6 +270,11 @@ export function ProjectEditor() {
           <Tooltip label="Bill of materials & cost estimate">
             <button className="btn-outline !px-2" onClick={() => setModal("bom")}>
               <Receipt className="h-4 w-4" />
+            </button>
+          </Tooltip>
+          <Tooltip label="Reference images & mood board">
+            <button className="btn-outline !px-2" onClick={() => setModal("assets")}>
+              <Images className="h-4 w-4" />
             </button>
           </Tooltip>
           {canEdit && (
@@ -466,6 +473,9 @@ export function ProjectEditor() {
       {modal === "admin" && <AdminSettingsModal onClose={() => setModal(null)} />}
       {modal === "share" && (
         <ShareModal projectId={projectId} onClose={() => setModal(null)} />
+      )}
+      {modal === "assets" && (
+        <AssetsModal projectId={projectId} canEdit={canEdit} onClose={() => setModal(null)} />
       )}
     </div>
   );

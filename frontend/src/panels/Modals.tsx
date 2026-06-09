@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   useAddMember,
+  useAssets,
   useBOM,
   useCatalog,
   useCostItems,
   useCreateCostItem,
   useCreateShareLink,
   useCreateSnapshot,
+  useDeleteAsset,
   useDeleteCostItem,
   useItemOverride,
   useRemoveMember,
@@ -16,14 +18,17 @@ import {
   useSnapshots,
   useUpdateCostItem,
   useUpdateFloor,
+  useUploadAsset,
 } from "@/api/hooks";
 import type { Floor, Project } from "@/types";
 import { LAYER_MAP } from "@/layers/config";
+import { API_ORIGIN } from "@/lib/api";
 import { useMoney, useSettings } from "@/store/settings";
 import {
   Check,
   Copy,
   History,
+  ImagePlus,
   Link2,
   PackageCheck,
   Plus,
@@ -751,6 +756,83 @@ export function ShareModal({
           </div>
         ))}
       </div>
+    </Shell>
+  );
+}
+
+export function AssetsModal({
+  projectId,
+  canEdit,
+  onClose,
+}: {
+  projectId: number;
+  canEdit: boolean;
+  onClose: () => void;
+}) {
+  const { data: assets } = useAssets(projectId);
+  const upload = useUploadAsset(projectId);
+  const del = useDeleteAsset(projectId);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const onPick = (files: FileList | null) => {
+    if (!files) return;
+    Array.from(files).forEach((f) => upload.mutate(f));
+  };
+
+  return (
+    <Shell title="Reference images & mood board" onClose={onClose} wide>
+      {canEdit && (
+        <div className="mb-4 flex items-center gap-2">
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              onPick(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <button
+            className="btn-primary"
+            disabled={upload.isPending}
+            onClick={() => inputRef.current?.click()}
+          >
+            <ImagePlus className="h-4 w-4" /> {upload.isPending ? "Uploading…" : "Upload images"}
+          </button>
+          <span className="text-xs text-ink-400">
+            PNG / JPG / WEBP / GIF / SVG · up to 10 MB each
+          </span>
+        </div>
+      )}
+      {(assets ?? []).length === 0 ? (
+        <p className="text-sm text-ink-400">No reference images yet.</p>
+      ) : (
+        <div className="grid grid-cols-3 gap-3">
+          {(assets ?? []).map((a) => (
+            <div key={a.id} className="group relative overflow-hidden rounded-lg border border-app">
+              <a href={`${API_ORIGIN}${a.url}`} target="_blank" rel="noreferrer">
+                <img
+                  src={`${API_ORIGIN}${a.url}`}
+                  alt={a.original_name}
+                  className="h-32 w-full bg-ink-50 object-cover dark:bg-slate-800"
+                />
+              </a>
+              {canEdit && (
+                <button
+                  className="absolute right-1 top-1 rounded bg-black/60 p-1 text-white opacity-0 transition group-hover:opacity-100"
+                  title="Delete image"
+                  onClick={() => del.mutate(a.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+              <p className="truncate px-2 py-1 text-xs text-ink-500">{a.original_name}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </Shell>
   );
 }

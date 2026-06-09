@@ -2,6 +2,9 @@ import axios from "axios";
 
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
+// origin for static files (uploaded assets served at `${API_ORIGIN}/uploads/...`)
+export const API_ORIGIN = BASE;
+
 export const api = axios.create({ baseURL: `${BASE}/api` });
 
 // bare client for public, no-auth endpoints (tokenized share links) — no JWT

@@ -59,6 +59,7 @@ A demo project is seeded automatically. Log in with:
   comments, and items can be flagged *client‑editable*.
 - **Share links** — generate a tokenized, **view‑only** link (no account needed) so clients can browse the
   2D plan and 3D walkthrough; costs are never exposed, and links can be revoked anytime.
+- **Reference images / mood board** — upload images per project to keep inspiration alongside the design.
 - **Version snapshots** (save / restore), **PNG export**, and a **comprehensive PDF report**
   (cover + cost summary, floor plan, a 3D angle of every room, and a grouped bill of materials).
 

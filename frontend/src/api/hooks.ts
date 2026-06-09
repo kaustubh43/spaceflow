@@ -5,6 +5,7 @@ import {
 } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type {
+  Asset,
   BOMReport,
   CatalogItem,
   Comment,
@@ -298,5 +299,39 @@ export function useRevokeShareLink(projectId: number) {
   return useMutation({
     mutationFn: (id: number) => api.delete(`/projects/${projectId}/share/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["share", projectId] }),
+  });
+}
+
+// ---- Assets (project reference images / mood board) ----
+export function useAssets(projectId: number) {
+  return useQuery({
+    queryKey: ["assets", projectId],
+    queryFn: async () =>
+      (await api.get<Asset[]>(`/projects/${projectId}/assets`)).data,
+    enabled: !!projectId,
+  });
+}
+
+export function useUploadAsset(projectId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      return (
+        await api.post<Asset>(`/projects/${projectId}/assets`, form, {
+          headers: { "Content-Type": "multipart/form-data" },
+        })
+      ).data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["assets", projectId] }),
+  });
+}
+
+export function useDeleteAsset(projectId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.delete(`/projects/${projectId}/assets/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["assets", projectId] }),
   });
 }
