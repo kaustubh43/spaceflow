@@ -71,6 +71,7 @@ CATALOG: list[tuple] = [
     ("Text Label / Note", "Annotations", LayerType.annotations, ElementKind.annotation, 140, 30, 0, "#ef4444", "label", 0, {"text": "Note"}),
 
     # ---- Architecture (placeable) ----
+    ("Staircase (straight)", "Staircase", LayerType.architecture, ElementKind.item, 110, 300, 300, "#94a3b8", "stairs", 85000, {"steps": 16, "going": "up"}),
     ("Door (single)", "Openings", LayerType.architecture, ElementKind.door, 90, 12, 210, "#b45309", "door", 9000, {"swing": "left"}),
     ("Window", "Openings", LayerType.architecture, ElementKind.window, 120, 12, 120, "#7dd3fc", "window", 7000, {"sill_cm": 90}),
 ]

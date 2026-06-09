@@ -59,7 +59,8 @@ For architecture/onboarding see [`.github/context.md`](.github/context.md).
   project has >1 floor). The active floor renders **live from the editor store**; other floors are pulled as
   static context (`useFloorsElements` in the editor, parallel `useQueries` in the shared viewer). Lights render
   once for the stack. (Walkthrough eye height is still ground‑level — upper‑floor first‑person walking is a
-  known limitation.)
+  known limitation.) Added a **Staircase** catalog preset + a stepped 3D model that rises to the floor height,
+  so a stacked villa visibly connects storeys; placed one in each villa demo.
 
 ## 🚀 Production readiness
 Current state: **feature‑complete MVP, ready for demos / pilots / internal single‑tenant use — not yet hardened for a public production launch.** The gaps below are deployment & security hardening, not application features. Estimated ~1–2 focused days.

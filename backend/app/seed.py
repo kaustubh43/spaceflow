@@ -62,7 +62,7 @@ def _room(fid, name, points, color="#e2e8f0", props=None):
 
 
 def _place(floor_id, cat, x, y, name=None, rot=0, client_editable=False, props=None,
-           w=None, d=None):
+           w=None, d=None, h=None):
     return Element(
         floor_id=floor_id,
         kind=cat.kind,
@@ -71,7 +71,7 @@ def _place(floor_id, cat, x, y, name=None, rot=0, client_editable=False, props=N
         x=x, y=y,
         width_cm=w or cat.default_width_cm,
         depth_cm=d or cat.default_depth_cm,
-        height_cm=cat.default_height_cm,
+        height_cm=h or cat.default_height_cm,
         rotation_deg=rot,
         color=cat.color,
         catalog_item_id=cat.id,
@@ -345,6 +345,8 @@ def seed_villas(db, c: dict[str, CatalogItem]) -> None:
             _place(g, c["Refrigerator"], 120, 760),
             _place(g, c["Television"], 200, 540),
             _place(g, c["Split AC Indoor"], 660, 90),
+            # staircase to the first floor (sized to this floor's height)
+            _place(g, c["Staircase (straight)"], 1230, 300, h=320, name="Main Staircase"),
             # plumbing
             _place(g, c["WC / Toilet"], 760, 980),
             _place(g, c["Wash Basin"], 900, 980),
@@ -477,6 +479,7 @@ def seed_villas(db, c: dict[str, CatalogItem]) -> None:
             _place(g, c["Refrigerator"], 120, 660),
             _place(g, c["Study Desk"], 870, 150),
             _place(g, c["Bookshelf"], 1000, 120, rot=90),
+            _place(g, c["Staircase (straight)"], 620, 250, h=300, name="Main Staircase"),
             _place(g, c["WC / Toilet"], 740, 760),
             _place(g, c["Wash Basin"], 900, 760),
             _place(g, c["Washing Machine"], 900, 500),

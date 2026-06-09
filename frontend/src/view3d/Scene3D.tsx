@@ -28,6 +28,7 @@ const ICON_MODEL: Record<string, string> = {
   ac: "ac", fan: "fan", exhaust: "exhaust",
   switchboard: "switchboard", socket: "socket", db: "db",
   cctv: "cctv", router: "router", speaker: "speaker",
+  stairs: "stairs",
   // false ceiling + flooring finishes
   ceiling_panel: "ceiling_panel", ceiling_grid: "ceiling_grid", cove: "cove",
   floor_tile: "floor_finish", floor_wood: "floor_finish", floor_marble: "floor_finish", rug: "rug",

@@ -491,7 +491,29 @@ function Cove({ w, d, color }: Props) {
   );
 }
 
+// Straight staircase: solid ascending steps from the floor up to h (the floor
+// height), so in a stacked building it visibly connects to the storey above.
+function Staircase({ w, d, h, color }: Props) {
+  const n = Math.max(4, Math.min(20, Math.round(h / 0.18)));
+  const run = d / n;
+  const out: JSX.Element[] = [];
+  for (let i = 0; i < n; i++) {
+    const top = (h * (i + 1)) / n;
+    // each step is a solid block from the floor up to its tread height
+    out.push(
+      <B key={`s${i}`} s={[w, top, run]} p={[0, top / 2, -d / 2 + run * (i + 0.5)]}
+         color={i % 2 ? color : shade(color, -0.05)} />
+    );
+  }
+  // a simple handrail along one side
+  out.push(<B key="rail" s={[0.05, 0.06, d]} p={[w / 2 - 0.03, h * 0.45 + 0.9, 0]} color="#475569" />);
+  out.push(<B key="post0" s={[0.05, h * 0.5, 0.05]} p={[w / 2 - 0.03, h * 0.25, -d / 2 + 0.05]} color="#475569" />);
+  out.push(<B key="post1" s={[0.05, 0.9, 0.05]} p={[w / 2 - 0.03, h + 0.45, d / 2 - 0.05]} color="#475569" />);
+  return <>{out}</>;
+}
+
 const BUILDERS: Record<string, (p: Props) => JSX.Element> = {
+  stairs: Staircase,
   floor_finish: FloorPanel,
   rug: Rug,
   ceiling_panel: CeilingPanel,
