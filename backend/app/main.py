@@ -45,9 +45,19 @@ for module in (
 # public, no-auth router for tokenized share links
 app.include_router(share.public_router, prefix=settings.API_PREFIX)
 
-# serve uploaded assets (unguessable uuid filenames) at /uploads
-os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+# serve uploaded assets (unguessable uuid filenames) at /uploads.
+# Best-effort dir creation: don't crash at import if the path isn't writable
+# (e.g. CI, where UPLOAD_DIR defaults to /app/uploads but /app isn't writable);
+# check_dir=False lets the mount succeed even if the dir doesn't exist yet.
+try:
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+except OSError:
+    pass
+app.mount(
+    "/uploads",
+    StaticFiles(directory=settings.UPLOAD_DIR, check_dir=False),
+    name="uploads",
+)
 
 
 @app.get("/api/health", tags=["health"])
