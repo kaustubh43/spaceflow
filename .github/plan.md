@@ -52,6 +52,15 @@ For architecture/onboarding see [`.github/context.md`](.github/context.md).
   zones** so furniture beneath stays visible. Added two **multi‑floor villa** demo projects (Ground + First),
   each exercising every layer incl. the new finishes.
 
+- **Stacked multi‑floor 3D ("Building" view)**: the 3D view used to draw every floor at ground level, so an
+  upper floor appeared to sit on the ground floor. Floors now render at their real elevation — each lifted by
+  the cumulative wall height of the floors below it (`floorBaseY`, keyed off `Floor.level`). A **Building / This
+  floor** toggle switches between the whole stacked house and just the active floor (defaults to Building when a
+  project has >1 floor). The active floor renders **live from the editor store**; other floors are pulled as
+  static context (`useFloorsElements` in the editor, parallel `useQueries` in the shared viewer). Lights render
+  once for the stack. (Walkthrough eye height is still ground‑level — upper‑floor first‑person walking is a
+  known limitation.)
+
 ## 🚀 Production readiness
 Current state: **feature‑complete MVP, ready for demos / pilots / internal single‑tenant use — not yet hardened for a public production launch.** The gaps below are deployment & security hardening, not application features. Estimated ~1–2 focused days.
 
@@ -100,6 +109,7 @@ Production compose + Dockerfiles + fail‑closed config (blockers 1–4): multi�
 - Snapshot restore replaces all elements on matching floors (no per‑element merge/diff).
 - Initial DB schema is built via `create_all` in migration 0001; keep new changes as explicit migrations.
 - Headless WebGL needs swiftshader flags (see context.md) — affects automated 3D screenshots only.
+- 3D stacks floors at their real elevation, but the first‑person **walkthrough stays at ground eye‑height** — you can orbit the upper storeys but can't yet walk through them.
 
 ## Conventions for contributors
 - Geometry in **centimetres**; rect/point `x,y` is the **centre**. Format currency via `useMoney()`.

@@ -1,5 +1,6 @@
 import {
   useMutation,
+  useQueries,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -121,6 +122,24 @@ export function useElements(projectId: number, floorId?: number) {
       ).data,
     enabled: !!projectId && !!floorId,
   });
+}
+
+// Elements for every floor (for the stacked 3D "Building" view). Shares the
+// per-floor query keys so the active floor stays in sync with useElements.
+export function useFloorsElements(projectId: number, floorIds: number[]) {
+  const results = useQueries({
+    queries: floorIds.map((fid) => ({
+      queryKey: ["elements", projectId, fid],
+      queryFn: async () =>
+        (await api.get<ElementModel[]>(`/projects/${projectId}/floors/${fid}/elements`)).data,
+      enabled: !!projectId && !!fid,
+    })),
+  });
+  const map: Record<number, ElementModel[]> = {};
+  floorIds.forEach((fid, i) => {
+    if (results[i]?.data) map[fid] = results[i].data as ElementModel[];
+  });
+  return map;
 }
 
 // ---- Catalog ----

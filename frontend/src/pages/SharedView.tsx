@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { publicApi } from "@/lib/api";
 import { useEditor } from "@/store/editor";
 import { useSettings } from "@/store/settings";
@@ -33,6 +33,20 @@ export function SharedView() {
     queryFn: async () =>
       (await publicApi.get<ElementModel[]>(`/shared/${token}/floors/${floorId}/elements`)).data,
     enabled: !!token && !!floorId,
+  });
+
+  // all floors' elements for the stacked 3D "Building" view
+  const floorResults = useQueries({
+    queries: (project?.floors ?? []).map((f) => ({
+      queryKey: ["shared-els", token, f.id],
+      queryFn: async () =>
+        (await publicApi.get<ElementModel[]>(`/shared/${token}/floors/${f.id}/elements`)).data,
+      enabled: !!token && !!f.id,
+    })),
+  });
+  const floorEls: Record<number, ElementModel[]> = {};
+  (project?.floors ?? []).forEach((f, i) => {
+    if (floorResults[i]?.data) floorEls[f.id] = floorResults[i].data as ElementModel[];
   });
 
   useEffect(() => {
@@ -127,7 +141,7 @@ export function SharedView() {
             <Canvas2D floor={floor} units={project.units} />
           ) : (
             <ErrorBoundary label="3D view unavailable">
-              <Scene3D floor={floor} />
+              <Scene3D floor={floor} floors={project.floors} floorEls={floorEls} />
             </ErrorBoundary>
           )}
         </main>

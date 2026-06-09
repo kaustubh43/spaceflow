@@ -15,7 +15,7 @@ import {
   WALL_MODELS,
   WALL_MODEL_Y,
 } from "./FurnitureModels";
-import { Eye, Orbit } from "lucide-react";
+import { Eye, Layers3, Orbit } from "lucide-react";
 
 // catalog icon -> furniture model key
 const ICON_MODEL: Record<string, string> = {
@@ -42,7 +42,9 @@ const KIND_MODEL: Record<string, string> = {
 export const M = 0.01; // cm -> metres
 
 interface Props {
-  floor: Floor;
+  floor: Floor; // the active (edited) floor — rendered live from the store
+  floors?: Floor[]; // all floors, enabling the stacked "Building" view
+  floorEls?: Record<number, ElementModel[]>; // elements for the non-active floors
 }
 
 // build a catalog-icon resolver from catalog rows
@@ -317,10 +319,14 @@ export function FloorScene({
   floor,
   els,
   iconOf,
+  baseY = 0,
+  lights = true,
 }: {
   floor: Floor;
   els: ElementModel[];
   iconOf: (el: ElementModel) => string;
+  baseY?: number; // metres this floor is lifted (level 0 = 0, upper floors stack)
+  lights?: boolean; // render the scene lights (only the first floor in a stack)
 }) {
   const floorTex = useMemo(() => woodFloorTexture(), []);
   const fw = floor.width_cm * M;
@@ -335,18 +341,22 @@ export function FloorScene({
   return (
     <>
       {/* self-contained lighting — no external HDR dependency, works offline */}
-      <ambientLight intensity={0.75} />
-      <hemisphereLight args={["#ffffff", "#b9c2cf", 0.6]} />
-      <directionalLight
-        position={[fw, 12, fh]}
-        intensity={1.2}
-        castShadow
-        shadow-mapSize={[1024, 1024]}
-      />
-      <directionalLight position={[-fw, 8, -fh]} intensity={0.4} />
+      {lights && (
+        <>
+          <ambientLight intensity={0.75} />
+          <hemisphereLight args={["#ffffff", "#b9c2cf", 0.6]} />
+          <directionalLight
+            position={[fw, 12, fh]}
+            intensity={1.2}
+            castShadow
+            shadow-mapSize={[1024, 1024]}
+          />
+          <directionalLight position={[-fw, 8, -fh]} intensity={0.4} />
+        </>
+      )}
 
       <Suspense fallback={null}>
-        <group position={[-center[0], 0, -center[1]]}>
+        <group position={[-center[0], baseY, -center[1]]}>
           {/* floor slab */}
           <mesh
             position={[fw / 2, -0.02, fh / 2]}
@@ -364,7 +374,20 @@ export function FloorScene({
   );
 }
 
-export function Scene3D({ floor }: Props) {
+// Stack floors by level: each floor sits on top of the wall height of all floors
+// below it, so a multi-storey project reads as a real building in 3D.
+export function floorBaseY(floors: Floor[]): Record<number, number> {
+  const sorted = [...floors].sort((a, b) => a.level - b.level);
+  const out: Record<number, number> = {};
+  let acc = 0;
+  for (const f of sorted) {
+    out[f.id] = acc;
+    acc += f.wall_height_cm * M;
+  }
+  return out;
+}
+
+export function Scene3D({ floor, floors, floorEls }: Props) {
   const { elements, order, visibleLayers } = useEditor();
   const { data: catalog } = useCatalog();
   const dark = useSettings((s) => s.theme === "dark");
@@ -372,17 +395,56 @@ export function Scene3D({ floor }: Props) {
 
   const iconOf = useMemo(() => makeIconOf(catalog), [catalog]);
 
+  // active floor's elements come live from the editor store
   const els = order
     .map((id) => elements[id])
     .filter((e) => e && visibleLayers.has(e.layer));
 
+  // stacked-building view is only meaningful with more than one floor
+  const allFloors = floors && floors.length > 1 ? floors : null;
+  const [building, setBuilding] = useState<boolean>(!!allFloors);
+  const showBuilding = !!allFloors && building;
+
+  const baseY = useMemo(
+    () => (allFloors ? floorBaseY(allFloors) : {}),
+    [allFloors]
+  );
+  const sortedFloors = useMemo(
+    () => (allFloors ? [...allFloors].sort((a, b) => a.level - b.level) : []),
+    [allFloors]
+  );
+
   const fw = floor.width_cm * M;
   const fh = floor.height_cm * M;
+  const totalH = allFloors
+    ? sortedFloors.reduce((s, f) => s + f.wall_height_cm * M, 0)
+    : floor.wall_height_cm * M;
+  const camY = showBuilding ? Math.max(6, totalH * 0.9) : 6;
+  const camZ = showBuilding ? fh + totalH : fh + 4;
 
   return (
     <div className="relative h-full w-full bg-gradient-to-b from-slate-200 to-slate-400 dark:from-slate-800 dark:to-slate-950">
-      <Canvas shadows camera={{ position: [fw / 2, 6, fh + 4], fov: 55 }}>
-        <FloorScene floor={floor} els={els} iconOf={iconOf} />
+      <Canvas shadows camera={{ position: [fw / 2, camY, camZ], fov: 55 }}>
+        {showBuilding ? (
+          sortedFloors.map((f, i) => {
+            const isActive = f.id === floor.id;
+            const fEls = isActive
+              ? els
+              : (floorEls?.[f.id] ?? []).filter((e) => visibleLayers.has(e.layer));
+            return (
+              <FloorScene
+                key={f.id}
+                floor={f}
+                els={fEls}
+                iconOf={iconOf}
+                baseY={baseY[f.id] ?? 0}
+                lights={i === 0}
+              />
+            );
+          })
+        ) : (
+          <FloorScene floor={floor} els={els} iconOf={iconOf} />
+        )}
 
         <Grid
           args={[40, 40]}
@@ -410,6 +472,15 @@ export function Scene3D({ floor }: Props) {
         >
           <Eye className="h-4 w-4" /> Walkthrough
         </button>
+        {allFloors && (
+          <button
+            className={`btn px-2 py-1 ${building ? "bg-brand-600 text-white" : "text-ink-600 dark:text-slate-300"}`}
+            onClick={() => setBuilding((b) => !b)}
+            title={building ? "Showing all floors stacked" : "Showing only the active floor"}
+          >
+            <Layers3 className="h-4 w-4" /> {building ? "Building" : "This floor"}
+          </button>
+        )}
       </div>
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded bg-white/90 px-3 py-1 text-xs text-ink-600 shadow dark:bg-slate-800/90 dark:text-slate-300">
         {mode === "walk"

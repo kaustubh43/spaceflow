@@ -4,6 +4,7 @@ import {
   useCreateFloor,
   useElements,
   useFloors,
+  useFloorsElements,
   useProject,
 } from "@/api/hooks";
 import { useEditor, type Tool } from "@/store/editor";
@@ -80,6 +81,8 @@ export function ProjectEditor() {
 
   const [floorId, setFloorId] = useState<number | undefined>();
   const { data: elements } = useElements(projectId, floorId);
+  // all floors' elements feed the stacked "Building" 3D view
+  const floorEls = useFloorsElements(projectId, (floors ?? []).map((f) => f.id));
 
   const editor = useEditor();
   const user = useAuth((s) => s.user);
@@ -423,7 +426,7 @@ export function ProjectEditor() {
             />
           ) : (
             <ErrorBoundary label="3D view unavailable">
-              <Scene3D floor={floor} />
+              <Scene3D floor={floor} floors={floors} floorEls={floorEls} />
             </ErrorBoundary>
           )}
         </main>
