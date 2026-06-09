@@ -34,13 +34,13 @@ backend/
     core/        config.py (pydantic-settings), security.py (JWT + bcrypt)
     db/          base.py (Base + TimestampMixin), session.py (engine, get_db)
     models/      user, project (+ProjectMembership), floor, element, catalog,
-                 collaboration (Comment, Snapshot), cost (CostItem), settings (AppSettings), enums
+                 collaboration (Comment, Snapshot), cost (CostItem), settings (AppSettings), share (ShareLink), enums
     schemas/     pydantic request/response models
     api/
       deps.py    get_current_user, require_project_role(min_role) dependency factory
-      routes/    auth, projects, floors, elements, catalog, comments, reports, settings
+      routes/    auth, projects, floors, elements, catalog, comments, reports, settings, share (authed + public_router)
     seed.py      idempotent demo seed (catalog + sample house); seed_data.py = CATALOG presets
-  alembic/versions/  0001_initial (create_all), 0002_cost_existing, 0003_app_settings
+  alembic/versions/  0001_initial (create_all), 0002_cost_existing, 0003_app_settings, 0004_share_links
   entrypoint.sh  alembic upgrade head → python -m app.seed → uvicorn
 frontend/
   src/
@@ -51,14 +51,15 @@ frontend/
     editor2d/    Canvas2D.tsx (Konva stage), ElementShape.tsx, stageHandle.ts (PNG export + live stage handle)
     view3d/      Scene3D.tsx (+ exported FloorScene reused by the PDF), FurnitureModels.tsx (parametric models), textures.ts
     export/      report.tsx (comprehensive PDF: plan + per-room 3D angles + grouped BOM)
-    panels/      LayerPanel, CatalogPanel, PropertiesPanel, CommentsPanel, Modals (BOM/Floor/Admin/Members/Snapshots)
-    pages/       Login, Register, Dashboard, ProjectEditor (assembles everything)
+    panels/      LayerPanel, CatalogPanel, PropertiesPanel, CommentsPanel, Modals (BOM/Floor/Admin/Members/Snapshots/Share)
+    pages/       Login, Register, Dashboard, ProjectEditor, SharedView (public read-only viewer)
     components/  Tooltip, ErrorBoundary
 ```
 
 ## Data model (the important part)
 - **Project** → has many **Floor** → has many **Element**. A Project also has **ProjectMembership**
-  (user↔role), **CostItem** (manual BOM lines), **Snapshot** (version history). **Comment** hangs off a Floor/Element.
+  (user↔role), **CostItem** (manual BOM lines), **Snapshot** (version history), and **ShareLink** (tokenized
+  view-only public access). **Comment** hangs off a Floor/Element.
 - **Element is the generic unit** of everything on a plan, distinguished by `kind` + `layer`:
   - `kind`: wall, room, door, window, item, switchboard, electrical_point, plumbing_line,
     plumbing_fixture, light, hvac_unit, network_point, annotation.
@@ -85,7 +86,10 @@ frontend/
 - `projects/` CRUD + `/{id}/members` · `projects/{id}/floors/` CRUD
 - `projects/{id}/floors/{fid}/elements/` CRUD + **`/bulk`** (editor saves all changes in one call; accepts
   `creates`/`updates`/`deletes`, each create may carry a `client_id`, and returns `{ items, id_map }`)
-- `catalog/` (read) · `.../comments/` CRUD
+- `catalog/` (read, **public** — reference data, no auth) · `.../comments/` CRUD
+- `projects/{id}/share` (create/list/revoke share links, editor+) · **`shared/{token}`** (public, no auth):
+  project meta + floors, and `shared/{token}/floors/{fid}/elements` — scoped to the token's project, **no costs**;
+  revoked/invalid token → 404
 - `projects/{id}/bom` (grouped report) · `bom/item-override` (set cost/existing for all elements of a catalog item) ·
   `cost-items/` CRUD (manual BOM lines) · `snapshots/` (+ `/restore`) · `settings` (GET/PUT)
 

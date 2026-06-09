@@ -4,6 +4,10 @@ const BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 export const api = axios.create({ baseURL: `${BASE}/api` });
 
+// bare client for public, no-auth endpoints (tokenized share links) — no JWT
+// header and no 401-refresh/redirect interceptor.
+export const publicApi = axios.create({ baseURL: `${BASE}/api` });
+
 const ACCESS_KEY = "idesigner_access";
 const REFRESH_KEY = "idesigner_refresh";
 

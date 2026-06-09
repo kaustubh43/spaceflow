@@ -19,6 +19,7 @@ import {
   BOMModal,
   FloorSettingsModal,
   MembersModal,
+  ShareModal,
   SnapshotsModal,
 } from "@/panels/Modals";
 import { exportPNG } from "@/editor2d/stageHandle";
@@ -35,6 +36,7 @@ import {
   Grid3x3,
   History,
   Image,
+  Link2,
   Magnet,
   MessageSquare,
   Moon,
@@ -83,7 +85,7 @@ export function ProjectEditor() {
   const [rightTab, setRightTab] = useState<"props" | "comments">("props");
   const [exporting, setExporting] = useState(false);
   const [modal, setModal] = useState<
-    null | "bom" | "members" | "snapshots" | "floor" | "admin"
+    null | "bom" | "members" | "snapshots" | "floor" | "admin" | "share"
   >(null);
 
   const createComment = useCreateComment(projectId, floorId ?? 0);
@@ -275,8 +277,13 @@ export function ProjectEditor() {
                   <History className="h-4 w-4" />
                 </button>
               </Tooltip>
+              <Tooltip label="Share a view-only link with clients (no account)">
+                <button className="btn-outline !px-2" onClick={() => setModal("share")}>
+                  <Link2 className="h-4 w-4" />
+                </button>
+              </Tooltip>
               {myRole === "owner" && (
-                <Tooltip label="Share with clients & teammates">
+                <Tooltip label="Manage members & roles">
                   <button className="btn-outline !px-2" onClick={() => setModal("members")}>
                     <Users className="h-4 w-4" />
                   </button>
@@ -457,6 +464,9 @@ export function ProjectEditor() {
         />
       )}
       {modal === "admin" && <AdminSettingsModal onClose={() => setModal(null)} />}
+      {modal === "share" && (
+        <ShareModal projectId={projectId} onClose={() => setModal(null)} />
+      )}
     </div>
   );
 }

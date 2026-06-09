@@ -57,6 +57,8 @@ A demo project is seeded automatically. Log in with:
 - **Bill of Materials** + cost estimate auto‑generated from placed items.
 - **Collaboration** — role‑based access (owner / editor / contributor / viewer),
   comments, and items can be flagged *client‑editable*.
+- **Share links** — generate a tokenized, **view‑only** link (no account needed) so clients can browse the
+  2D plan and 3D walkthrough; costs are never exposed, and links can be revoked anytime.
 - **Version snapshots** (save / restore), **PNG export**, and a **comprehensive PDF report**
   (cover + cost summary, floor plan, a 3D angle of every room, and a grouped bill of materials).
 

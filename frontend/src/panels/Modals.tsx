@@ -5,11 +5,14 @@ import {
   useCatalog,
   useCostItems,
   useCreateCostItem,
+  useCreateShareLink,
   useCreateSnapshot,
   useDeleteCostItem,
   useItemOverride,
   useRemoveMember,
   useRestoreSnapshot,
+  useRevokeShareLink,
+  useShareLinks,
   useSnapshots,
   useUpdateCostItem,
   useUpdateFloor,
@@ -18,7 +21,10 @@ import type { Floor, Project } from "@/types";
 import { LAYER_MAP } from "@/layers/config";
 import { useMoney, useSettings } from "@/store/settings";
 import {
+  Check,
+  Copy,
   History,
+  Link2,
   PackageCheck,
   Plus,
   Trash2,
@@ -665,6 +671,85 @@ export function SnapshotsModal({
         ) : (
           <p className="text-ink-400">No snapshots yet.</p>
         )}
+      </div>
+    </Shell>
+  );
+}
+
+export function ShareModal({
+  projectId,
+  onClose,
+}: {
+  projectId: number;
+  onClose: () => void;
+}) {
+  const { data: links } = useShareLinks(projectId);
+  const create = useCreateShareLink(projectId);
+  const revoke = useRevokeShareLink(projectId);
+  const [label, setLabel] = useState("");
+  const [copied, setCopied] = useState<number | null>(null);
+
+  const urlFor = (token: string) => `${window.location.origin}/shared/${token}`;
+  const copy = async (id: number, token: string) => {
+    try {
+      await navigator.clipboard.writeText(urlFor(token));
+    } catch {
+      /* clipboard may be blocked; the URL is still visible to select */
+    }
+    setCopied(id);
+    setTimeout(() => setCopied((c) => (c === id ? null : c)), 1500);
+  };
+
+  return (
+    <Shell title="Share with clients" onClose={onClose}>
+      <p className="mb-3 text-sm text-ink-500">
+        Create a <strong>view-only</strong> link anyone can open — no account needed. They can browse the
+        2D plan and 3D walkthrough but can't edit, and costs are never shown.
+      </p>
+      <div className="mb-4 flex gap-2">
+        <input
+          className="input flex-1"
+          placeholder="Label (optional, e.g. “For the Sharmas”)"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+        />
+        <button
+          className="btn-primary whitespace-nowrap"
+          disabled={create.isPending}
+          onClick={() => {
+            create.mutate(label);
+            setLabel("");
+          }}
+        >
+          <Link2 className="h-4 w-4" /> Create link
+        </button>
+      </div>
+      <div className="space-y-2">
+        {(links ?? []).length === 0 && (
+          <p className="text-sm text-ink-400">No links yet.</p>
+        )}
+        {(links ?? []).map((l) => (
+          <div key={l.id} className="flex items-center gap-2 rounded-lg border border-app px-3 py-2">
+            <div className="min-w-0 flex-1">
+              {l.label && <p className="truncate text-sm font-medium">{l.label}</p>}
+              <p className="truncate text-xs text-ink-400">{urlFor(l.token)}</p>
+            </div>
+            <button className="btn-outline !px-2" onClick={() => copy(l.id, l.token)} title="Copy link">
+              {copied === l.id ? (
+                <Check className="h-4 w-4 text-emerald-600" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </button>
+            <button
+              className="btn-outline !px-2 !text-rose-600"
+              onClick={() => revoke.mutate(l.id)}
+              title="Revoke link"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
       </div>
     </Shell>
   );

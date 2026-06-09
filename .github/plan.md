@@ -34,6 +34,11 @@ For architecture/onboarding see [`.github/context.md`](.github/context.md).
 - **Snap items to walls**: dragging a furniture/fixture item near a wall snaps it **flush** against the wall face
   (offset = wall thickness/2 + the item's half‑extent projected onto the wall normal, so rotated items still sit
   flush), with the snapped wall highlighted; falls back to centre‑alignment guides when no wall is near.
+- **Share links for clients** (tokenized, view‑only, no account): `ShareLink` model + migration 0004; authed
+  create/list/revoke under `/projects/{id}/share`; **public** `/shared/{token}` endpoints (project meta + floors +
+  elements, scoped to the token, **no costs**); `/catalog` made public so the viewer resolves 3D models. A
+  **Share** button opens a modal to generate/copy/revoke links; a public `/shared/:token` route renders a
+  read‑only `SharedView` (2D + 3D, layer toggles, floor switcher) with no editing. Revoked/invalid → friendly 404.
 
 ## 🔜 Next up (high value)
 - On‑canvas **dimension chains** (item‑to‑item / item‑to‑wall measurements while editing).

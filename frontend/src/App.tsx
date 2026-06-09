@@ -6,6 +6,7 @@ import { Login } from "@/pages/Login";
 import { Register } from "@/pages/Register";
 import { Dashboard } from "@/pages/Dashboard";
 import { ProjectEditor } from "@/pages/ProjectEditor";
+import { SharedView } from "@/pages/SharedView";
 import { Loader2 } from "lucide-react";
 
 function Protected({ children }: { children: JSX.Element }) {
@@ -35,6 +36,8 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      {/* public, no-auth view-only client link */}
+      <Route path="/shared/:token" element={<SharedView />} />
       <Route
         path="/"
         element={

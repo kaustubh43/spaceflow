@@ -10,6 +10,7 @@ from app.api.routes import (
     projects,
     reports,
     settings as settings_routes,
+    share,
 )
 from app.core.config import settings
 
@@ -32,8 +33,12 @@ for module in (
     comments,
     reports,
     settings_routes,
+    share,
 ):
     app.include_router(module.router, prefix=settings.API_PREFIX)
+
+# public, no-auth router for tokenized share links
+app.include_router(share.public_router, prefix=settings.API_PREFIX)
 
 
 @app.get("/api/health", tags=["health"])

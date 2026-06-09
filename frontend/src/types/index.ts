@@ -168,3 +168,18 @@ export interface CostItemModel {
   unit_cost: number;
   sort_order: number;
 }
+
+export interface ShareLink {
+  id: number;
+  token: string;
+  label: string;
+  revoked: boolean;
+  created_at?: string | null;
+}
+
+export interface SharedProject {
+  name: string;
+  client_name?: string | null;
+  units: string;
+  floors: Floor[];
+}

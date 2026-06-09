@@ -12,6 +12,7 @@ from app.models.catalog import CatalogItem
 from app.models.collaboration import Comment, Snapshot
 from app.models.cost import CostItem
 from app.models.settings import AppSettings
+from app.models.share import ShareLink
 
 __all__ = [
     "ElementKind",
@@ -28,4 +29,5 @@ __all__ = [
     "Snapshot",
     "CostItem",
     "AppSettings",
+    "ShareLink",
 ]

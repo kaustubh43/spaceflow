@@ -12,6 +12,7 @@ import type {
   ElementModel,
   Floor,
   Project,
+  ShareLink,
   Snapshot,
 } from "@/types";
 
@@ -270,5 +271,32 @@ export function useRestoreSnapshot(projectId: number) {
     mutationFn: async (id: number) =>
       api.post(`/projects/${projectId}/snapshots/${id}/restore`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["elements"] }),
+  });
+}
+
+// ---- Share links (tokenized, view-only) ----
+export function useShareLinks(projectId: number, enabled = true) {
+  return useQuery({
+    queryKey: ["share", projectId],
+    queryFn: async () =>
+      (await api.get<ShareLink[]>(`/projects/${projectId}/share`)).data,
+    enabled,
+  });
+}
+
+export function useCreateShareLink(projectId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (label: string) =>
+      (await api.post<ShareLink>(`/projects/${projectId}/share`, { label })).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["share", projectId] }),
+  });
+}
+
+export function useRevokeShareLink(projectId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.delete(`/projects/${projectId}/share/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["share", projectId] }),
   });
 }
