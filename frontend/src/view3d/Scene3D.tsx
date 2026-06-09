@@ -316,18 +316,29 @@ function Walkthrough({ eyeY = 1.6 }: { eyeY?: number }) {
 
 // Lights + floor slab + walls + items, centred on the world origin. Shared by
 // the live 3D view and the off-screen PDF report renderer so they stay in sync.
+// a stairwell opening to cut from this floor's slab (metres; centre + extents + rotation)
+export interface SlabHole {
+  x: number;
+  z: number;
+  w: number;
+  d: number;
+  rot: number;
+}
+
 export function FloorScene({
   floor,
   els,
   iconOf,
   baseY = 0,
   lights = true,
+  holes = [],
 }: {
   floor: Floor;
   els: ElementModel[];
   iconOf: (el: ElementModel) => string;
   baseY?: number; // metres this floor is lifted (level 0 = 0, upper floors stack)
   lights?: boolean; // render the scene lights (only the first floor in a stack)
+  holes?: SlabHole[]; // stairwell voids cut from the slab (from the floor below)
 }) {
   const floorTex = useMemo(() => woodFloorTexture(), []);
   const fw = floor.width_cm * M;
@@ -335,9 +346,36 @@ export function FloorScene({
   const ceilingY = floor.wall_height_cm * M;
   const center: [number, number] = [fw / 2, fh / 2];
 
+  // when the slab has stairwell holes we build it from a Shape (UVs == metres,
+  // so the texture repeat is ~1 tile / 1.2m); otherwise a plain plane (UVs 0..1).
+  const slabGeo = useMemo(() => {
+    if (!holes.length) return null;
+    const shape = new THREE.Shape();
+    shape.moveTo(0, 0);
+    shape.lineTo(fw, 0);
+    shape.lineTo(fw, fh);
+    shape.lineTo(0, fh);
+    shape.closePath();
+    for (const h of holes) {
+      const a = (h.rot * Math.PI) / 180;
+      const ca = Math.cos(a), sa = Math.sin(a);
+      const hw = h.w / 2, hd = h.d / 2;
+      const corners: [number, number][] = [
+        [-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd],
+      ].map(([lx, lz]) => [h.x + lx * ca - lz * sa, h.z + lx * sa + lz * ca]);
+      const path = new THREE.Path();
+      path.moveTo(corners[0][0], corners[0][1]);
+      for (let i = 1; i < corners.length; i++) path.lineTo(corners[i][0], corners[i][1]);
+      path.closePath();
+      shape.holes.push(path);
+    }
+    return new THREE.ShapeGeometry(shape);
+  }, [holes, fw, fh]);
+
   useMemo(() => {
-    floorTex.repeat.set(Math.max(2, fw / 1.2), Math.max(2, fh / 1.2));
-  }, [floorTex, fw, fh]);
+    if (slabGeo) floorTex.repeat.set(1 / 1.2, 1 / 1.2);
+    else floorTex.repeat.set(Math.max(2, fw / 1.2), Math.max(2, fh / 1.2));
+  }, [floorTex, fw, fh, slabGeo]);
 
   return (
     <>
@@ -358,15 +396,17 @@ export function FloorScene({
 
       <Suspense fallback={null}>
         <group position={[-center[0], baseY, -center[1]]}>
-          {/* floor slab */}
-          <mesh
-            position={[fw / 2, -0.02, fh / 2]}
-            rotation={[-Math.PI / 2, 0, 0]}
-            receiveShadow
-          >
-            <planeGeometry args={[fw, fh]} />
-            <meshStandardMaterial map={floorTex} roughness={0.7} side={THREE.DoubleSide} />
-          </mesh>
+          {/* floor slab (a Shape with stairwell holes, or a plain plane) */}
+          {slabGeo ? (
+            <mesh geometry={slabGeo} position={[0, -0.02, 0]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
+              <meshStandardMaterial map={floorTex} roughness={0.7} side={THREE.DoubleSide} />
+            </mesh>
+          ) : (
+            <mesh position={[fw / 2, -0.02, fh / 2]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+              <planeGeometry args={[fw, fh]} />
+              <meshStandardMaterial map={floorTex} roughness={0.7} side={THREE.DoubleSide} />
+            </mesh>
+          )}
           <Walls floor={floor} els={els} />
           <Items els={els} iconOf={iconOf} ceilingY={ceilingY} />
         </group>
@@ -428,10 +468,24 @@ export function Scene3D({ floor, floors, floorEls }: Props) {
       <Canvas shadows camera={{ position: [fw / 2, camY, camZ], fov: 55 }}>
         {showBuilding ? (
           sortedFloors.map((f, i) => {
-            const isActive = f.id === floor.id;
-            const fEls = isActive
-              ? els
-              : (floorEls?.[f.id] ?? []).filter((e) => visibleLayers.has(e.layer));
+            const elsFor = (fl: Floor) =>
+              fl.id === floor.id
+                ? els
+                : (floorEls?.[fl.id] ?? []).filter((e) => visibleLayers.has(e.layer));
+            const fEls = elsFor(f);
+            // cut stairwell voids in this floor's slab for staircases on the floor below
+            const below = i > 0 ? sortedFloors[i - 1] : null;
+            const holes = below
+              ? elsFor(below)
+                  .filter((e) => ICON_MODEL[iconOf(e)] === "stairs")
+                  .map((e) => ({
+                    x: e.x * M,
+                    z: e.y * M,
+                    w: e.width_cm * M,
+                    d: e.depth_cm * M,
+                    rot: e.rotation_deg || 0,
+                  }))
+              : [];
             return (
               <FloorScene
                 key={f.id}
@@ -440,6 +494,7 @@ export function Scene3D({ floor, floors, floorEls }: Props) {
                 iconOf={iconOf}
                 baseY={baseY[f.id] ?? 0}
                 lights={i === 0}
+                holes={holes}
               />
             );
           })
