@@ -43,6 +43,32 @@ For architecture/onboarding see [`.github/context.md`](.github/context.md).
   /projects/{id}/assets` (multipart, images ≤10 MB, uuid filenames); files served by a **StaticFiles mount at
   `/uploads`**. An **Assets** modal (thumbnail grid, multi‑upload, delete) opens from a header button.
 
+## 🚀 Production readiness
+Current state: **feature‑complete MVP, ready for demos / pilots / internal single‑tenant use — not yet hardened for a public production launch.** The gaps below are deployment & security hardening, not application features. Estimated ~1–2 focused days.
+
+### 🔴 Blockers (must fix before any public deployment)
+- **Everything runs in dev mode.**
+  - Frontend `Dockerfile` runs `npm run dev` (Vite dev server, HMR, bind‑mounted source). Prod needs `vite build` → static bundle served by nginx/Caddy.
+  - Backend `entrypoint.sh` runs `uvicorn --reload` (single worker, hot‑reload, `./backend:/app` bind mount). Prod needs gunicorn/uvicorn with multiple workers, no reload, and code baked into the image (no source volume).
+- **Insecure secret defaults with no enforcement.** `core/config.py` defaults `SECRET_KEY="change-me-to-a-long-random-string"` and the DB password to `idesigner_dev_password`; nothing fails if they aren't overridden → a deploy can ship with a publicly‑known JWT signing key (token forgery → account takeover). Must hard‑error on startup if the secret is still the default.
+- **Demo seed defaults to ON in prod.** `SEED_DEMO=true` is the default, creating known accounts (`designer@idesigner.app`/`demo1234`, `client@…`). Should default off and be explicit opt‑in.
+- **CORS hardcoded to localhost.** `CORS_ORIGINS` only lists `localhost:5173`; must be env‑driven for a real domain.
+- **No TLS, and Postgres is exposed.** All ports are plain HTTP; `5432` is published to the host in `docker-compose.yml`. Prod needs HTTPS termination and the DB not publicly exposed.
+
+### 🟡 Should‑fix before real users
+- **No login rate‑limiting / brute‑force protection** on the auth endpoints.
+- **Refresh‑token lifecycle** — verify rotation/revocation rather than a single long‑lived token.
+- **Uploads on a local disk volume**, served by the app — uuid filenames are unguessable (good), but no size/disk quota story and no object storage (S3) for horizontal scaling.
+- **No error tracking / structured logging / metrics** (Sentry, request logs). `/api/health` exists (good start).
+- **No DB backup strategy** — the repo‑local `./data/postgres` volume is convenient for dev, not a backup plan.
+- **Thin test coverage** — 17 backend tests + a frontend build check, no e2e.
+
+### 🟢 Already solid
+- Clean architecture, role‑based auth, explicit Alembic migrations, JWT, full 2D/3D/PDF/share/assets feature set, dark mode, auto‑save with durable undo, CI on each push. The *application* is in good shape.
+
+### Suggested first slice
+Production compose + Dockerfiles + fail‑closed config (blockers 1–4): multi‑stage frontend build behind a reverse proxy, a non‑reload backend image, and fail‑closed secret/CORS/seed config, then TLS and rate‑limiting.
+
 ## 🔜 Next up (high value)
 - On‑canvas **dimension chains** (item‑to‑item / item‑to‑wall clearance measurements while editing).
 - Optional **glTF model slot** per catalog item (load real meshes for hero pieces).
