@@ -26,7 +26,8 @@ Then open:
 | API docs       | http://localhost:8000/docs       |
 | Postgres       | localhost:5432                   |
 
-A demo project is seeded automatically. Log in with:
+Demo projects are seeded automatically — a **Sample 2BHK Apartment** plus two **multi‑floor villas**
+(*Luxury 4BHK Villa*, *Hillside Duplex Villa*). Log in with:
 
 - **Designer:** `designer@idesigner.app` / `demo1234` (full edit)
 - **Client:**  `client@idesigner.app` / `demo1234` (comment + tweak client‑editable items)
@@ -52,8 +53,10 @@ A demo project is seeded automatically. Log in with:
   Annotations. Each can be hidden / locked.
 - **Specialised editors** — electrical switchboards with per‑button info &
   circuits; plumbing fixtures; lighting wattage; HVAC capacity, etc.
-- **Catalog** of ready presets (TV unit, cupboard, bed, fridge, WC, sink, AC…)
-  with default dimensions and costs.
+- **Catalog** of ready presets for **every layer** — furniture, appliances, electrical, plumbing,
+  lighting, HVAC, networking, plus **false‑ceiling** (gypsum panels, POP tiles, cove lights),
+  **flooring** finishes (tile / wood / marble / rugs), and **annotation** labels — with default
+  dimensions and costs.
 - **Bill of Materials** + cost estimate auto‑generated from placed items.
 - **Collaboration** — role‑based access (owner / editor / contributor / viewer),
   comments, and items can be flagged *client‑editable*.

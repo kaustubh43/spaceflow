@@ -43,6 +43,15 @@ For architecture/onboarding see [`.github/context.md`](.github/context.md).
   /projects/{id}/assets` (multipart, images ≤10 MB, uuid filenames); files served by a **StaticFiles mount at
   `/uploads`**. An **Assets** modal (thumbnail grid, multi‑upload, delete) opens from a header button.
 
+- **Filled out empty layers + multi‑floor villa demos**: the `false_ceiling`, `flooring`, and `annotations`
+  layers had **no catalog presets** (false ceiling was effectively unusable). Added presets for all three —
+  false ceiling (gypsum panel, POP tile/cornice, cove light channel), flooring (vitrified tile, wooden,
+  marble, area rug), and an annotation **text label**. New parametric 3D models render them in place: floor
+  finishes lie flat on the slab, false‑ceiling panels/coves **drop below the structural ceiling** (emissive
+  cove strip), and labels are 2D‑only. In 2D, `false_ceiling`/`flooring` items draw as **translucent dashed
+  zones** so furniture beneath stays visible. Added two **multi‑floor villa** demo projects (Ground + First),
+  each exercising every layer incl. the new finishes.
+
 ## 🚀 Production readiness
 Current state: **feature‑complete MVP, ready for demos / pilots / internal single‑tenant use — not yet hardened for a public production launch.** The gaps below are deployment & security hardening, not application features. Estimated ~1–2 focused days.
 

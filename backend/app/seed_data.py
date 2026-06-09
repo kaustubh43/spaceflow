@@ -56,6 +56,20 @@ CATALOG: list[tuple] = [
     ("Data Outlet (RJ45)", "Network", LayerType.networking, ElementKind.network_point, 8, 8, 8, "#a78bfa", "data", 600, {"cat": "6"}),
     ("Ceiling Speaker", "Network", LayerType.networking, ElementKind.network_point, 18, 18, 10, "#a78bfa", "speaker", 5000, {}),
 
+    # ---- False Ceiling ----
+    ("Gypsum Ceiling Panel", "False Ceiling", LayerType.false_ceiling, ElementKind.item, 300, 300, 15, "#cbd5e1", "ceiling_panel", 1400, {"drop_cm": 15, "material": "gypsum"}),
+    ("POP Tile / Cornice", "False Ceiling", LayerType.false_ceiling, ElementKind.item, 60, 60, 8, "#e2e8f0", "ceiling_grid", 350, {"material": "pop"}),
+    ("Cove Light Channel", "False Ceiling", LayerType.false_ceiling, ElementKind.item, 200, 12, 10, "#fde68a", "cove", 1200, {"led_strip": True, "wattage": 14}),
+
+    # ---- Flooring ----
+    ("Vitrified Tile (Area)", "Flooring", LayerType.flooring, ElementKind.item, 300, 300, 2, "#d6d3d1", "floor_tile", 90, {"material": "vitrified", "per": "sqft"}),
+    ("Wooden Flooring (Area)", "Flooring", LayerType.flooring, ElementKind.item, 300, 300, 2, "#b08968", "floor_wood", 180, {"material": "laminate", "per": "sqft"}),
+    ("Marble Flooring (Area)", "Flooring", LayerType.flooring, ElementKind.item, 300, 300, 2, "#e7e5e4", "floor_marble", 250, {"material": "marble", "per": "sqft"}),
+    ("Area Rug", "Flooring", LayerType.flooring, ElementKind.item, 200, 140, 2, "#9f1239", "rug", 6000, {}),
+
+    # ---- Annotations ----
+    ("Text Label / Note", "Annotations", LayerType.annotations, ElementKind.annotation, 140, 30, 0, "#ef4444", "label", 0, {"text": "Note"}),
+
     # ---- Architecture (placeable) ----
     ("Door (single)", "Openings", LayerType.architecture, ElementKind.door, 90, 12, 210, "#b45309", "door", 9000, {"swing": "left"}),
     ("Window", "Openings", LayerType.architecture, ElementKind.window, 120, 12, 120, "#7dd3fc", "window", 7000, {"sill_cm": 90}),

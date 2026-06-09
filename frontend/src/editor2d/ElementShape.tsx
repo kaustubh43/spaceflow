@@ -113,6 +113,10 @@ export function ElementShape({
   const isPoint = ["electrical_point", "light", "network_point"].includes(el.kind);
   const isDoor = el.kind === "door";
   const isWindow = el.kind === "window";
+  const isLabel = el.kind === "annotation";
+  // false-ceiling / flooring finishes cover whole zones — draw them as
+  // translucent dashed areas so furniture beneath them stays visible.
+  const isArea = el.layer === "false_ceiling" || el.layer === "flooring";
 
   const handleDragEnd = (e: any) => {
     onChange({ x: e.target.x(), y: e.target.y() });
@@ -207,6 +211,17 @@ export function ElementShape({
           offsetX={0}
           offsetY={0}
         />
+      ) : isLabel ? (
+        <Text
+          text={String(el.properties?.text ?? el.name ?? "Note")}
+          offsetX={w / 2}
+          offsetY={d / 2}
+          width={w}
+          align="center"
+          fontSize={16}
+          fontStyle="bold"
+          fill={selected ? "#4f46e5" : color}
+        />
       ) : (
         <Rect
           width={w}
@@ -214,14 +229,14 @@ export function ElementShape({
           offsetX={w / 2}
           offsetY={d / 2}
           fill={color}
-          opacity={el.is_existing ? 0.5 : 0.85}
+          opacity={isArea ? 0.22 : el.is_existing ? 0.5 : 0.85}
           cornerRadius={4}
-          stroke={selected ? "#4f46e5" : el.is_existing ? "#0f766e" : itemStroke}
+          stroke={selected ? "#4f46e5" : isArea ? color : el.is_existing ? "#0f766e" : itemStroke}
           strokeWidth={selected ? 3 : el.is_existing ? 2 : 1}
-          dash={el.is_existing ? [8, 5] : undefined}
+          dash={isArea ? [10, 6] : el.is_existing ? [8, 5] : undefined}
         />
       )}
-      {!isPoint && !isDoor && !isWindow && (
+      {!isPoint && !isDoor && !isWindow && !isLabel && (
         <Text
           text={el.name}
           width={w}

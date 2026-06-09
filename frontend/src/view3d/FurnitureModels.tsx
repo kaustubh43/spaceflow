@@ -445,7 +445,58 @@ function Sconce({ w, h, color }: Props) {
   );
 }
 
+// --- Floor finishes (tile / wood / marble): a thin slab resting on the slab. ---
+function FloorPanel({ w, d, h, color }: Props) {
+  const t = Math.min(Math.max(h, 0.01), 0.04);
+  return <B s={[w, t, d]} p={[0, t / 2, 0]} color={color} rough={0.55} />;
+}
+
+// Area rug: a soft thin mat just above the floor, with an inner border.
+function Rug({ w, d, color }: Props) {
+  return (
+    <>
+      <B s={[w, 0.015, d]} p={[0, 0.012, 0]} color={color} rough={0.95} />
+      <B s={[w * 0.86, 0.006, d * 0.82]} p={[0, 0.022, 0]} color={shade(color, 0.1)} rough={0.95} />
+    </>
+  );
+}
+
+// False-ceiling panel: drops below the structural ceiling (group sits near the
+// ceiling, so build downward by the drop distance).
+function CeilingPanel({ w, d, h, color }: Props) {
+  const drop = Math.min(Math.max(h, 0.03), 0.3);
+  return <B s={[w, 0.04, d]} p={[0, -drop, 0]} color={color} rough={0.92} />;
+}
+
+// POP tile / cornice: a shallow recessed tile near the ceiling.
+function CeilingGrid({ w, d, color }: Props) {
+  return (
+    <>
+      <B s={[w, 0.04, d]} p={[0, -0.05, 0]} color={color} rough={0.88} />
+      <B s={[w * 0.7, 0.05, d * 0.7]} p={[0, -0.09, 0]} color={shade(color, 0.06)} rough={0.88} />
+    </>
+  );
+}
+
+// Cove light channel: a recessed channel near the ceiling with a glowing strip.
+function Cove({ w, d, color }: Props) {
+  return (
+    <>
+      <B s={[w, 0.05, d]} p={[0, -0.06, 0]} color="#e2e8f0" rough={0.9} />
+      <mesh position={[0, -0.095, 0]}>
+        <boxGeometry args={[w * 0.92, 0.02, d * 0.5]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.9} />
+      </mesh>
+    </>
+  );
+}
+
 const BUILDERS: Record<string, (p: Props) => JSX.Element> = {
+  floor_finish: FloorPanel,
+  rug: Rug,
+  ceiling_panel: CeilingPanel,
+  ceiling_grid: CeilingGrid,
+  cove: Cove,
   chair: Chair,
   sofa: Sofa,
   bed: Bed,
@@ -479,7 +530,10 @@ const BUILDERS: Record<string, (p: Props) => JSX.Element> = {
 };
 
 // model placement metadata
-export const CEILING_MODELS = new Set(["ceiling_light", "pendant", "fan", "speaker"]);
+export const CEILING_MODELS = new Set([
+  "ceiling_light", "pendant", "fan", "speaker",
+  "ceiling_panel", "ceiling_grid", "cove",
+]);
 export const WALL_MODELS = new Set([
   "ac", "geyser", "switchboard", "socket", "db", "cctv", "exhaust", "sconce",
 ]);

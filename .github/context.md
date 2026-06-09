@@ -40,7 +40,7 @@ backend/
     api/
       deps.py    get_current_user, require_project_role(min_role) dependency factory
       routes/    auth, projects, floors, elements, catalog, comments, reports, settings, share (authed + public_router), assets
-    seed.py      idempotent demo seed (catalog + sample house); seed_data.py = CATALOG presets
+    seed.py      idempotent demo seed (catalog + sample house + two multi-floor villas); seed_data.py = CATALOG presets
   alembic/versions/  0001_initial (create_all), 0002_cost_existing, 0003_app_settings, 0004_share_links, 0005_assets
   main.py        includes routers + mounts StaticFiles at /uploads (serves uploaded assets)
   entrypoint.sh  alembic upgrade head → python -m app.seed → uvicorn
@@ -144,8 +144,12 @@ frontend/
   Using a Tailwind class whose color shade isn't defined makes `index.css` 500 and **blanks the whole app** — define shades in the config.
 - **Initial migration uses `Base.metadata.create_all`**; subsequent schema changes get an explicit Alembic migration.
 - **bcrypt is pinned `<4.1`** so passlib can read its version (avoids a noisy boot traceback).
-- **Seed is idempotent** (guards on project name). To refresh the demo: delete the `Sample 2BHK Apartment`
-  project (DB cascade clears its rows) then `docker compose exec backend python -m app.seed`.
+- **Seed is idempotent** (guards on project name). It seeds the catalog, the `Sample 2BHK Apartment`, and two
+  multi-floor demos (`Luxury 4BHK Villa`, `Hillside Duplex Villa`). To refresh one, delete that project (DB
+  cascade clears its rows) then `docker compose exec backend python -m app.seed`.
+- **Every layer has catalog presets**, incl. `false_ceiling` (gypsum panel/POP tile/cove), `flooring`
+  (tile/wood/marble/rug — rendered as flat slabs in 3D, translucent dashed zones in 2D), and `annotations`
+  (text label — 2D-only). Area finishes use `floor_finish`/`ceiling_panel`/`cove` 3D models.
 - Don't touch user‑created projects when reseeding (the demo is matched by name only).
 
 ## How to verify changes
