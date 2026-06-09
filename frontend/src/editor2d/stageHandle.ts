@@ -4,6 +4,11 @@ import jsPDF from "jspdf";
 // shared reference to the live Konva stage so toolbar buttons can export it
 export const stageHandle: { current: Konva.Stage | null } = { current: null };
 
+// dev-only handle for debugging / automated tests (stripped from prod builds)
+if (import.meta.env.DEV && typeof window !== "undefined") {
+  (window as any).__stageHandle = stageHandle;
+}
+
 export function exportPNG(filename: string) {
   const stage = stageHandle.current;
   if (!stage) return;

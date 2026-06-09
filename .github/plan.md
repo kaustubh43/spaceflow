@@ -31,9 +31,12 @@ For architecture/onboarding see [`.github/context.md`](.github/context.md).
 - **Richer 3D models**: parametric models for microwave, geyser, switchboard, socket, distribution board, CCTV,
   router, ceiling speaker, exhaust fan, and wall sconce (previously plain blocks / wrong model). Wall‑mounted
   fixtures sit at realistic heights via a per‑model `WALL_MODEL_Y` map (socket low, switchboard mid, CCTV high).
+- **Snap items to walls**: dragging a furniture/fixture item near a wall snaps it **flush** against the wall face
+  (offset = wall thickness/2 + the item's half‑extent projected onto the wall normal, so rotated items still sit
+  flush), with the snapped wall highlighted; falls back to centre‑alignment guides when no wall is near.
 
 ## 🔜 Next up (high value)
-- **Snap items to walls/edges** and on‑canvas dimension chains (item‑to‑item alignment guides already shipped).
+- On‑canvas **dimension chains** (item‑to‑item / item‑to‑wall measurements while editing).
 - **Share links for clients** (tokenized, no account) in addition to full accounts.
 - **Asset/image upload** (textures, mood boards, custom catalog thumbnails) — `uploads/` volume already exists.
 - Optional **glTF model slot** per catalog item (load real meshes for hero pieces).

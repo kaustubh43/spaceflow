@@ -6,7 +6,7 @@ import { useSettings } from "@/store/settings";
 import type { Floor } from "@/types";
 import { ElementShape } from "./ElementShape";
 import { stageHandle } from "./stageHandle";
-import { formatLength } from "@/lib/units";
+import { DEFAULT_WALL_THICKNESS_CM, formatLength } from "@/lib/units";
 import { Check, X } from "lucide-react";
 
 interface Props {
@@ -49,7 +49,7 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
   const [measure, setMeasure] = useState<number[]>([]);
   // smart alignment guides shown while dragging an item
-  const [guides, setGuides] = useState<{ x?: number; y?: number }>({});
+  const [guides, setGuides] = useState<{ x?: number; y?: number; wall?: number[] }>({});
 
   // register stage for export helpers
   useEffect(() => {
@@ -147,11 +147,64 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
     return snapWorld(w.x, w.y);
   };
 
-  // while dragging an item, snap its centre to align with other items / floor centre
+  // while dragging an item, snap it flush against a nearby wall, else align its
+  // centre to other items / the floor centre.
   const onItemDragMove = (id: number, node: any) => {
     const thr = 8 / scale;
     const cx = node.x();
     const cy = node.y();
+    const me = elements[id];
+
+    // --- flush-snap to a nearby wall (rect/point items only) ---
+    if (
+      me &&
+      !me.points &&
+      me.kind !== "door" &&
+      me.kind !== "window"
+    ) {
+      const a = ((me.rotation_deg || 0) * Math.PI) / 180;
+      const ex = [Math.cos(a), Math.sin(a)];
+      const ey = [-Math.sin(a), Math.cos(a)];
+      const halfW = me.width_cm / 2;
+      const halfD = me.depth_cm / 2;
+      let best:
+        | { d: number; fx: number; fy: number; nx: number; ny: number; offset: number; seg: number[] }
+        | null = null;
+      for (const oid of order) {
+        const o = elements[oid];
+        if (!o || o.kind !== "wall" || !o.points) continue;
+        const thick = Number(o.properties?.thickness_cm ?? DEFAULT_WALL_THICKNESS_CM);
+        const p = o.points;
+        for (let i = 0; i + 3 < p.length; i += 2) {
+          const ax = p[i], ay = p[i + 1], bx = p[i + 2], by = p[i + 3];
+          const dx = bx - ax, dy = by - ay;
+          const L2 = dx * dx + dy * dy;
+          if (L2 < 1) continue;
+          let t = ((cx - ax) * dx + (cy - ay) * dy) / L2;
+          t = Math.max(0, Math.min(1, t));
+          const fx = ax + t * dx, fy = ay + t * dy;
+          const d = Math.hypot(cx - fx, cy - fy);
+          const L = Math.sqrt(L2);
+          const nx = -dy / L, ny = dx / L; // unit normal
+          const halfExtent =
+            Math.abs(halfW * (ex[0] * nx + ex[1] * ny)) +
+            Math.abs(halfD * (ey[0] * nx + ey[1] * ny));
+          const offset = thick / 2 + halfExtent;
+          if (d < offset + 22 && (!best || d < best.d)) {
+            best = { d, fx, fy, nx, ny, offset, seg: [ax, ay, bx, by] };
+          }
+        }
+      }
+      if (best) {
+        const side = (cx - best.fx) * best.nx + (cy - best.fy) * best.ny >= 0 ? 1 : -1;
+        node.x(best.fx + best.nx * side * best.offset);
+        node.y(best.fy + best.ny * side * best.offset);
+        setGuides({ wall: best.seg });
+        return;
+      }
+    }
+
+    // --- centre-alignment guides (fallback) ---
     const targetsX = [floor.width_cm / 2];
     const targetsY = [floor.height_cm / 2];
     for (const oid of order) {
@@ -487,6 +540,16 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
           )}
 
           {/* smart alignment guides */}
+          {guides.wall && (
+            <Line
+              points={guides.wall}
+              stroke="#ec4899"
+              strokeWidth={4 / scale}
+              dash={[10 / scale, 6 / scale]}
+              lineCap="round"
+              listening={false}
+            />
+          )}
           {guides.x !== undefined && (
             <Line
               points={[guides.x, -2000, guides.x, floor.height_cm + 2000]}

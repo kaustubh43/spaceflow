@@ -104,11 +104,13 @@ frontend/
   matches the freshly fetched server elements (`elementsEqual`); otherwise they're discarded. To keep history ids
   valid across saves, **`/elements/bulk` returns `{ items, id_map }`** (temp→real ids) and the store remaps every
   history snapshot via `remapSnap`. `ElementCreate` carries an optional `client_id` so the server can build that map.
-- A dev-only `window.__editor` handle is exposed (stripped from prod builds) for debugging/automated tests.
+- Dev-only handles (stripped from prod builds) for debugging/automated tests: `window.__editor` (the store) and
+  `window.__stageHandle` (the live Konva stage, for computing world↔screen coords).
 - **Canvas2D**: world units = cm; a scaled Konva layer is the "camera" (pan/zoom in component state).
   `snapWorld()` snaps to nearby wall/room vertices then the grid. Drawing walls/rooms uses a draft array,
   finished via Enter / double‑click / clicking the first point / the floating Finish button. Selected
-  wall/room shows **draggable vertex handles**.
+  wall/room shows **draggable vertex handles**. `onItemDragMove` flush‑snaps a dragged item against the nearest
+  wall (offset = wall thickness/2 + the item's rotated half‑extent), else shows centre‑alignment guides.
 - **Scene3D**: extrudes walls (per‑element `properties.wall_height`, else `floor.wall_height_cm`) and **cuts
   hollow openings** for doors/windows (lintels over doors, sill+header for windows); a room with `wall_height`
   becomes a railing (balconies). Items render via **FurnitureModels** — parametric primitives chosen by
