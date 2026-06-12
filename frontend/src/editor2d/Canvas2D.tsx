@@ -28,6 +28,7 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
     elements,
     order,
     selectedId,
+    selectedIds,
     visibleLayers,
     lockedLayers,
     tool,
@@ -37,6 +38,9 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
     snap,
     canEdit,
     select,
+    toggleSelect,
+    selectAll,
+    moveSelection,
     addElement,
     updateElement,
     setTool,
@@ -65,6 +69,24 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
     window.addEventListener("mouseup", clear);
     return () => window.removeEventListener("mouseup", clear);
   }, []);
+
+  // Ctrl/Cmd+A selects everything on visible, unlocked layers; Esc clears
+  useEffect(() => {
+    if (!canEdit) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (tool !== "select") return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        selectAll();
+      } else if (e.key === "Escape") {
+        select(null);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [canEdit, tool, selectAll, select]);
 
   // fit container
   useEffect(() => {
@@ -100,7 +122,10 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
     if (!tr || !stage) return;
     const el = selectedId ? elements[selectedId] : null;
     const transformable =
-      el && !["wall", "room", "plumbing_line"].includes(el.kind) && canEdit;
+      el &&
+      selectedIds.length === 1 &&
+      !["wall", "room", "plumbing_line"].includes(el.kind) &&
+      canEdit;
     if (transformable) {
       const node = stage.findOne(`.el-${selectedId}`);
       tr.nodes(node ? [node] : []);
@@ -108,7 +133,7 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
       tr.nodes([]);
     }
     tr.getLayer()?.batchDraw();
-  }, [selectedId, elements, canEdit, tool]);
+  }, [selectedId, selectedIds, elements, canEdit, tool]);
 
   const toWorld = (px: number, py: number) => ({
     x: (px - pos.x) / scale,
@@ -147,9 +172,66 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
     return snapWorld(w.x, w.y);
   };
 
+  // ---- multi-select group drag ----
+  // captured node start positions at drag start; `group` => move the whole set live
+  const dragStart = useRef<{
+    ids: number[];
+    pos: Record<number, { x: number; y: number }>;
+    group: boolean;
+  } | null>(null);
+
+  const onElSelect = (id: number, e?: any) => {
+    if (tool !== "select" || lockedLayers.has(elements[id]?.layer)) return;
+    if (e?.evt?.shiftKey) {
+      toggleSelect(id);
+      return;
+    }
+    // mousedown on a member of a multi-selection keeps the group intact so it
+    // can be dragged together; click empty space first to drop to a single pick
+    if (selectedIds.length > 1 && selectedIds.includes(id)) return;
+    select(id);
+  };
+
+  const onElDragStart = (id: number) => {
+    const stage = stageRef.current;
+    const ids =
+      selectedIds.length > 1 && selectedIds.includes(id) ? selectedIds : [id];
+    const pos: Record<number, { x: number; y: number }> = {};
+    for (const sid of ids) {
+      const n = stage?.findOne(`.el-${sid}`);
+      if (n) pos[sid] = { x: n.x(), y: n.y() };
+    }
+    dragStart.current = { ids, pos, group: ids.length > 1 };
+  };
+
+  const onElDragEnd = (id: number, node: any) => {
+    const g = dragStart.current;
+    const start = g?.pos[id] ?? { x: elements[id].x, y: elements[id].y };
+    const dx = node.x() - start.x;
+    const dy = node.y() - start.y;
+    const ids = g?.ids ?? [id];
+    dragStart.current = null;
+    moveSelection(ids, dx, dy);
+  };
+
   // while dragging an item, snap it flush against a nearby wall, else align its
   // centre to other items / the floor centre.
   const onItemDragMove = (id: number, node: any) => {
+    // group drag: translate every other selected node by the same delta, live
+    const g = dragStart.current;
+    if (g?.group) {
+      const dx = node.x() - g.pos[id].x;
+      const dy = node.y() - g.pos[id].y;
+      const stage = stageRef.current;
+      for (const sid of g.ids) {
+        if (sid === id) continue;
+        const n = stage?.findOne(`.el-${sid}`);
+        if (n) n.position({ x: g.pos[sid].x + dx, y: g.pos[sid].y + dy });
+      }
+      stage?.batchDraw();
+      setGuides({});
+      return;
+    }
     const thr = 8 / scale;
     const cx = node.x();
     const cy = node.y();
@@ -465,11 +547,13 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
                 key={id}
                 el={el}
                 dark={dark}
-                selected={selectedId === id}
+                selected={selectedIds.includes(id)}
                 draggable={canEdit && !locked && tool === "select"}
-                onSelect={() => tool === "select" && !locked && select(id)}
+                onSelect={(e) => onElSelect(id, e)}
                 onChange={(patch) => updateElement(id, patch)}
+                onDragStart={() => onElDragStart(id)}
                 onDragMove={(node) => onItemDragMove(id, node)}
+                onDragEnd={(node) => onElDragEnd(id, node)}
               />
             );
           })}
@@ -479,6 +563,7 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
             const el = selectedId ? elements[selectedId] : null;
             if (
               !el ||
+              selectedIds.length !== 1 ||
               !el.points ||
               !canEdit ||
               lockedLayers.has(el.layer) ||
@@ -649,7 +734,14 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
 }
 
 function SelectionReadout({ units }: { units: string }) {
-  const { selectedId, elements } = useEditor();
+  const { selectedId, selectedIds, elements } = useEditor();
+  if (selectedIds.length > 1)
+    return (
+      <div className="absolute left-3 top-3 rounded-lg bg-white/90 px-3 py-1.5 text-xs shadow backdrop-blur dark:bg-navy-800/90 dark:text-slate-200">
+        <span className="font-medium">{selectedIds.length} elements selected</span>{" "}
+        <span className="text-ink-500 dark:text-slate-400">· drag to move together</span>
+      </div>
+    );
   const el = selectedId ? elements[selectedId] : null;
   if (!el || ["wall", "room", "plumbing_line"].includes(el.kind)) return null;
   return (

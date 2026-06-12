@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useEditor } from "@/store/editor";
 import { LAYERS, LAYER_MAP } from "@/layers/config";
 import { DEFAULT_WALL_THICKNESS_CM } from "@/lib/units";
@@ -11,12 +12,23 @@ function NumberField({
   value,
   onChange,
   suffix = "cm",
+  commitOnBlur = false,
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
   suffix?: string;
+  commitOnBlur?: boolean; // defer onChange to blur/Enter (e.g. relative resize)
 }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? String(Math.round(value));
+  const commit = () => {
+    if (draft !== null) {
+      const v = Number(draft);
+      if (!Number.isNaN(v)) onChange(v);
+      setDraft(null);
+    }
+  };
   return (
     <label className="block">
       <span className="text-xs text-ink-500">{label}</span>
@@ -24,8 +36,16 @@ function NumberField({
         <input
           type="number"
           className="input"
-          value={Math.round(value)}
-          onChange={(e) => onChange(Number(e.target.value))}
+          value={commitOnBlur ? shown : Math.round(value)}
+          onChange={(e) =>
+            commitOnBlur ? setDraft(e.target.value) : onChange(Number(e.target.value))
+          }
+          onBlur={commitOnBlur ? commit : undefined}
+          onKeyDown={
+            commitOnBlur
+              ? (e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()
+              : undefined
+          }
         />
         <span className="text-xs text-ink-400">{suffix}</span>
       </div>
@@ -137,9 +157,38 @@ const KIND_FIELDS: Record<string, { key: string; label: string }[]> = {
 };
 
 export function PropertiesPanel() {
-  const { selectedId, elements, updateElement, deleteElement, canEdit, isContributor } =
-    useEditor();
+  const {
+    selectedId,
+    selectedIds,
+    elements,
+    updateElement,
+    deleteElement,
+    canEdit,
+    isContributor,
+  } = useEditor();
   const el = selectedId ? elements[selectedId] : null;
+
+  // multi-selection: a compact summary + bulk delete (per-element editing is
+  // for a single selection)
+  if (selectedIds.length > 1) {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm font-medium">{selectedIds.length} elements selected</p>
+        <p className="text-xs text-ink-400">
+          Drag any one on the canvas to move them all together. Shift-click to
+          add or remove from the selection.
+        </p>
+        {canEdit && (
+          <button
+            className="btn-outline w-full text-red-600"
+            onClick={() => selectedIds.forEach((id) => deleteElement(id))}
+          >
+            <Trash2 className="h-4 w-4" /> Delete {selectedIds.length} elements
+          </button>
+        )}
+      </div>
+    );
+  }
 
   if (!el)
     return (
@@ -150,6 +199,32 @@ export function PropertiesPanel() {
 
   const update = (patch: Partial<ElementModel>) => updateElement(el.id, patch);
   const isLine = ["wall", "room", "plumbing_line"].includes(el.kind);
+
+  // bounding box of a polyline element (for resize-by-dimension)
+  const lineBox = (() => {
+    if (!el.points || el.points.length < 2) return null;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (let i = 0; i < el.points.length; i += 2) {
+      minX = Math.min(minX, el.points[i]);
+      maxX = Math.max(maxX, el.points[i]);
+      minY = Math.min(minY, el.points[i + 1]);
+      maxY = Math.max(maxY, el.points[i + 1]);
+    }
+    return { minX, minY, w: maxX - minX, h: maxY - minY };
+  })();
+
+  // scale the polygon to a target bounding-box size, anchored at its top-left
+  const resizeLine = (newW?: number, newH?: number) => {
+    if (!el.points || !lineBox) return;
+    const sx = newW && lineBox.w > 0.001 ? newW / lineBox.w : 1;
+    const sy = newH && lineBox.h > 0.001 ? newH / lineBox.h : 1;
+    const out = el.points.map((v, i) =>
+      i % 2 === 0
+        ? Math.round(lineBox.minX + (v - lineBox.minX) * sx)
+        : Math.round(lineBox.minY + (v - lineBox.minY) * sy)
+    );
+    update({ points: out });
+  };
 
   const rotatePoints = (deg: number) => {
     if (!el.points || el.points.length < 4) return;
@@ -278,6 +353,28 @@ export function PropertiesPanel() {
             Drag the corner handles on the canvas to reshape or extend. Corners snap
             to the grid and to nearby room/wall corners.
           </p>
+          {lineBox && (
+            <div>
+              <span className="text-xs text-ink-500">Overall size (bounding box)</span>
+              <div className="mt-1 grid grid-cols-2 gap-2">
+                <NumberField
+                  label="Width"
+                  value={lineBox.w}
+                  commitOnBlur
+                  onChange={(v) => resizeLine(Math.max(1, v), undefined)}
+                />
+                <NumberField
+                  label="Depth"
+                  value={lineBox.h}
+                  commitOnBlur
+                  onChange={(v) => resizeLine(undefined, Math.max(1, v))}
+                />
+              </div>
+              <p className="mt-1 text-xs text-ink-400">
+                Scales the {el.kind} to this size (anchored at its top-left corner).
+              </p>
+            </div>
+          )}
           <div>
             <span className="text-xs text-ink-500">Orientation</span>
             <div className="mt-1 flex gap-1">

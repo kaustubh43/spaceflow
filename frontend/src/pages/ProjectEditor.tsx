@@ -33,6 +33,7 @@ import { Tooltip } from "@/components/Tooltip";
 import {
   ArrowLeft,
   Box,
+  BoxSelect,
   CloudOff,
   DoorOpen,
   Grid3x3,
@@ -408,6 +409,17 @@ export function ProjectEditor() {
                   );
                 })}
               </div>
+              <Tooltip label="Select everything on visible, unlocked layers (Ctrl/Cmd+A), then drag to move it all">
+                <button
+                  className="btn-outline mt-1 w-full py-1 text-xs"
+                  onClick={() => {
+                    editor.setTool("select");
+                    editor.selectAll();
+                  }}
+                >
+                  <BoxSelect className="h-4 w-4" /> Select all
+                </button>
+              </Tooltip>
             </div>
           )}
           <LayerPanel />

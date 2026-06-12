@@ -8,10 +8,11 @@ interface Props {
   selected: boolean;
   draggable: boolean;
   dark?: boolean;
-  onSelect: () => void;
+  onSelect: (e?: any) => void;
   onChange: (patch: Partial<ElementModel>, markDirty?: boolean) => void;
   onDragMove?: (node: any) => void;
   onDragStart?: () => void;
+  onDragEnd?: (node: any) => void; // when set, overrides default single-element commit
 }
 
 // On the dark canvas the structural greys disappear, so lift them to light tints.
@@ -32,6 +33,7 @@ export function ElementShape({
   onChange,
   onDragMove,
   onDragStart,
+  onDragEnd,
 }: Props) {
   // in dark mode, lift the dark structural greys (incl. seeded wall colours) so
   // thin wall/partition lines stay legible. Vivid layer colours are untouched.
@@ -148,7 +150,7 @@ export function ElementShape({
       onTap={onSelect}
       onDragStart={() => onDragStart?.()}
       onDragMove={(e) => onDragMove?.(e.target)}
-      onDragEnd={handleDragEnd}
+      onDragEnd={(e) => (onDragEnd ? onDragEnd(e.target) : handleDragEnd(e))}
       onTransformEnd={handleTransformEnd}
     >
       {isDoor ? (

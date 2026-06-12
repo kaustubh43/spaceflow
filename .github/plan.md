@@ -62,6 +62,18 @@ For architecture/onboarding see [`.github/context.md`](.github/context.md).
   known limitation.) Added a **Staircase** catalog preset + a stepped 3D model that rises to the floor height,
   so a stacked villa visibly connects storeys; placed one in each villa demo.
 
+- **Multi-select + group move, room resize, room-wall opening fix**:
+  - **Multi-selection**: the store tracks `selectedIds` (not just one). Shift-click adds/removes an element; **Ctrl/Cmd+A
+    (and a Select-all toolbar button) selects every element on visible, unlocked layers**. Dragging any selected
+    element **live-moves the whole selection together** (rect items by x/y, walls/rooms/pipes by translating their
+    points), committed as a single undo step. The transformer + vertex handles only show for a single selection.
+  - **Resize a room/wall by dimensions**: the Properties panel shows the line's bounding-box **Width/Depth** for
+    rooms & walls; editing a value scales the polygon to that size (anchored at its top-left corner).
+  - **Bug fix — raised room walls now cut door/window openings in 3D**: a *room* given a `wall_height` rendered its
+    perimeter as walls but never cut openings (and was always railing-thin), so a door across a room edge stayed
+    solid. Room perimeters now cut openings like real walls; thickness scales with height (low = balcony railing,
+    tall = real wall thickness via `thickness_cm`/default).
+
 ## 🚀 Production readiness
 Current state: **feature‑complete MVP, ready for demos / pilots / internal single‑tenant use — not yet hardened for a public production launch.** The gaps below are deployment & security hardening, not application features. Estimated ~1–2 focused days.
 

@@ -41,7 +41,8 @@ interface EditorState {
   floorId: number | null;
   elements: Record<number, ElementModel>;
   order: number[];
-  selectedId: number | null;
+  selectedId: number | null; // primary selection (drives the Properties panel)
+  selectedIds: number[]; // full multi-selection (includes selectedId)
   baseline: Record<number, ElementModel>; // last known server state, for diffing
 
   visibleLayers: Set<LayerType>;
@@ -86,6 +87,9 @@ interface EditorState {
   toggleSnap: () => void;
   toggleAutoSave: () => void;
   select: (id: number | null) => void;
+  toggleSelect: (id: number) => void; // shift-click add/remove
+  selectAll: () => void; // every element on visible, unlocked layers
+  moveSelection: (ids: number[], dx: number, dy: number) => void; // group drag commit
 
   addElement: (partial: Partial<ElementModel>) => number;
   updateElement: (id: number, patch: Partial<ElementModel>, markDirty?: boolean) => void;
@@ -110,6 +114,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   elements: {},
   order: [],
   selectedId: null,
+  selectedIds: [],
   baseline: {},
   visibleLayers: new Set(allLayers),
   lockedLayers: new Set(),
@@ -159,6 +164,7 @@ export const useEditor = create<EditorState>((set, get) => ({
         past: persisted.past ?? [],
         future: persisted.future ?? [],
         selectedId: null,
+        selectedIds: [],
         lastTouch: null,
         canEdit,
         isContributor,
@@ -176,6 +182,7 @@ export const useEditor = create<EditorState>((set, get) => ({
         order,
         baseline,
         selectedId: null,
+        selectedIds: [],
         dirty: new Set(),
         deletes: new Set(),
         past: [],
@@ -218,7 +225,53 @@ export const useEditor = create<EditorState>((set, get) => ({
       }
       return { autoSave: on };
     }),
-  select: (id) => set({ selectedId: id }),
+  select: (id) => set({ selectedId: id, selectedIds: id == null ? [] : [id] }),
+
+  toggleSelect: (id) =>
+    set((s) => {
+      const has = s.selectedIds.includes(id);
+      const selectedIds = has
+        ? s.selectedIds.filter((x) => x !== id)
+        : [...s.selectedIds, id];
+      return {
+        selectedIds,
+        selectedId: has
+          ? selectedIds[selectedIds.length - 1] ?? null
+          : id,
+      };
+    }),
+
+  selectAll: () =>
+    set((s) => {
+      const ids = s.order.filter((id) => {
+        const el = s.elements[id];
+        return el && s.visibleLayers.has(el.layer) && !s.lockedLayers.has(el.layer);
+      });
+      return { selectedIds: ids, selectedId: ids[ids.length - 1] ?? null };
+    }),
+
+  moveSelection: (ids, dx, dy) => {
+    if ((dx === 0 && dy === 0) || ids.length === 0) return;
+    recordHistory(get, set); // one undo step for the whole group move
+    set((s) => {
+      const elements = { ...s.elements };
+      for (const id of ids) {
+        const el = elements[id];
+        if (!el) continue;
+        if (el.points) {
+          elements[id] = {
+            ...el,
+            points: el.points.map((v, i) => (i % 2 === 0 ? v + dx : v + dy)),
+          };
+        } else {
+          elements[id] = { ...el, x: el.x + dx, y: el.y + dy };
+        }
+      }
+      return { elements };
+    });
+    refreshDirty(get, set);
+    afterMutation(get);
+  },
 
   addElement: (partial) => {
     recordHistory(get, set);
@@ -248,6 +301,7 @@ export const useEditor = create<EditorState>((set, get) => ({
       elements: { ...s.elements, [id]: el },
       order: [...s.order, id],
       selectedId: id,
+      selectedIds: [id],
     }));
     refreshDirty(get, set);
     afterMutation(get);
@@ -276,6 +330,7 @@ export const useEditor = create<EditorState>((set, get) => ({
         elements,
         order: s.order.filter((x) => x !== id),
         selectedId: s.selectedId === id ? null : s.selectedId,
+        selectedIds: s.selectedIds.filter((x) => x !== id),
       };
     });
     refreshDirty(get, set);

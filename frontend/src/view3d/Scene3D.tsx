@@ -159,7 +159,14 @@ export function Walls({ floor, els }: { floor: Floor; els: ElementModel[] }) {
         const thick = Number(el.properties?.thickness_cm ?? DEFAULT_WALL_THICKNESS_CM) * M;
         addRun(el.points, custom > 0 ? custom * M : defaultH, false, true, thick);
       } else if (el.kind === "room" && custom > 0) {
-        addRun(el.points, custom * M, true, false, RAILING_THICK); // balcony railing, not cut
+        // a "raised" room acts as walls and should cut door/window openings like
+        // a wall. Stay railing-thin (and uncut) for low parapets/balconies; use
+        // real wall thickness + cut openings once it's tall enough to be a wall.
+        const isRailing = custom <= 140;
+        const thick = isRailing
+          ? RAILING_THICK
+          : Number(el.properties?.thickness_cm ?? DEFAULT_WALL_THICKNESS_CM) * M;
+        addRun(el.points, custom * M, true, !isRailing, thick);
       }
     }
     return out;
