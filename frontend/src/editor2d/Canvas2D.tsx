@@ -70,23 +70,40 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
     return () => window.removeEventListener("mouseup", clear);
   }, []);
 
-  // Ctrl/Cmd+A selects everything on visible, unlocked layers; Esc clears
+  // Ctrl/Cmd+A selects everything on visible, unlocked layers; Esc clears;
+  // arrow keys nudge the selection (grid step; hold Shift for 1cm fine moves)
   useEffect(() => {
     if (!canEdit) return;
     const onKey = (e: KeyboardEvent) => {
-      if (tool !== "select") return;
+      if (tool !== "select" && tool !== "move") return;
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a") {
         e.preventDefault();
         selectAll();
-      } else if (e.key === "Escape") {
-        select(null);
+        return;
       }
+      if (e.key === "Escape") {
+        select(null);
+        return;
+      }
+      const ids = useEditor.getState().selectedIds;
+      if (!ids.length) return;
+      const step = e.shiftKey ? 1 : Math.max(1, floor.grid_cm);
+      const delta: Record<string, [number, number]> = {
+        ArrowLeft: [-step, 0],
+        ArrowRight: [step, 0],
+        ArrowUp: [0, -step],
+        ArrowDown: [0, step],
+      };
+      const d = delta[e.key];
+      if (!d) return;
+      e.preventDefault();
+      moveSelection(ids, d[0], d[1], true); // coalesce held-key repeats into one undo
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [canEdit, tool, selectAll, select]);
+  }, [canEdit, tool, selectAll, select, moveSelection, floor.grid_cm]);
 
   // fit container
   useEffect(() => {
@@ -181,7 +198,8 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
   } | null>(null);
 
   const onElSelect = (id: number, e?: any) => {
-    if (tool !== "select" || lockedLayers.has(elements[id]?.layer)) return;
+    if ((tool !== "select" && tool !== "move") || lockedLayers.has(elements[id]?.layer))
+      return;
     if (e?.evt?.shiftKey) {
       toggleSelect(id);
       return;
@@ -548,7 +566,7 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
                 el={el}
                 dark={dark}
                 selected={selectedIds.includes(id)}
-                draggable={canEdit && !locked && tool === "select"}
+                draggable={canEdit && !locked && (tool === "select" || tool === "move")}
                 onSelect={(e) => onElSelect(id, e)}
                 onChange={(patch) => updateElement(id, patch)}
                 onDragStart={() => onElDragStart(id)}
@@ -567,7 +585,7 @@ export function Canvas2D({ floor, units, onCommentAt }: Props) {
               !el.points ||
               !canEdit ||
               lockedLayers.has(el.layer) ||
-              tool !== "select"
+              (tool !== "select" && tool !== "move")
             )
               return null;
             const pts = el.points;
@@ -739,7 +757,9 @@ function SelectionReadout({ units }: { units: string }) {
     return (
       <div className="absolute left-3 top-3 rounded-lg bg-white/90 px-3 py-1.5 text-xs shadow backdrop-blur dark:bg-navy-800/90 dark:text-slate-200">
         <span className="font-medium">{selectedIds.length} elements selected</span>{" "}
-        <span className="text-ink-500 dark:text-slate-400">· drag to move together</span>
+        <span className="text-ink-500 dark:text-slate-400">
+          · drag or use arrow keys to move together (Shift+arrow = 1cm)
+        </span>
       </div>
     );
   const el = selectedId ? elements[selectedId] : null;

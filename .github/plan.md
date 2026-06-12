@@ -67,6 +67,9 @@ For architecture/onboarding see [`.github/context.md`](.github/context.md).
     (and a Select-all toolbar button) selects every element on visible, unlocked layers**. Dragging any selected
     element **live-moves the whole selection together** (rect items by x/y, walls/rooms/pipes by translating their
     points), committed as a single undo step. The transformer + vertex handles only show for a single selection.
+    A dedicated **Move tool** (in the Tools grid) behaves like Select but **never pans the stage**, eliminating the
+    drag-the-element-vs-pan-the-view conflict; **arrow keys nudge the selection** by one grid step (Shift+arrow =
+    1 cm), with held-key repeats coalesced into a single undo step.
   - **Resize a room/wall by dimensions**: the Properties panel shows the line's bounding-box **Width/Depth** for
     rooms & walls; editing a value scales the polygon to that size (anchored at its top-left corner).
   - **Bug fix — raised room walls now cut door/window openings in 3D**: a *room* given a `wall_height` rendered its

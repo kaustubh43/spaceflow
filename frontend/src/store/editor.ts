@@ -10,6 +10,7 @@ import type {
 
 export type Tool =
   | "select"
+  | "move" // like select, but the stage never pans: drags always move the selection
   | "wall"
   | "room"
   | "door"
@@ -21,6 +22,10 @@ export type Tool =
 export type ViewMode = "2d" | "3d";
 
 let tempId = -1; // negative ids for not-yet-saved elements
+
+// sentinel "element id" for coalescing keyboard nudges in the undo history
+// (real ids are positive from the server or small negatives from tempId)
+const NUDGE_COALESCE_ID = -0x7fffffff;
 
 interface HistorySnap {
   elements: Record<number, ElementModel>;
@@ -89,7 +94,8 @@ interface EditorState {
   select: (id: number | null) => void;
   toggleSelect: (id: number) => void; // shift-click add/remove
   selectAll: () => void; // every element on visible, unlocked layers
-  moveSelection: (ids: number[], dx: number, dy: number) => void; // group drag commit
+  // group drag commit / keyboard nudge (coalesce=true folds rapid nudges into one undo step)
+  moveSelection: (ids: number[], dx: number, dy: number, coalesce?: boolean) => void;
 
   addElement: (partial: Partial<ElementModel>) => number;
   updateElement: (id: number, patch: Partial<ElementModel>, markDirty?: boolean) => void;
@@ -250,9 +256,10 @@ export const useEditor = create<EditorState>((set, get) => ({
       return { selectedIds: ids, selectedId: ids[ids.length - 1] ?? null };
     }),
 
-  moveSelection: (ids, dx, dy) => {
+  moveSelection: (ids, dx, dy, coalesce = false) => {
     if ((dx === 0 && dy === 0) || ids.length === 0) return;
-    recordHistory(get, set); // one undo step for the whole group move
+    // one undo step for the whole group move; arrow-key nudges coalesce
+    recordHistory(get, set, coalesce ? NUDGE_COALESCE_ID : undefined);
     set((s) => {
       const elements = { ...s.elements };
       for (const id of ids) {

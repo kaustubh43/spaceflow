@@ -45,6 +45,7 @@ import {
   MessageSquare,
   Moon,
   MousePointer2,
+  Move,
   Move3d,
   PencilRuler,
   Plus,
@@ -64,7 +65,8 @@ import {
 } from "lucide-react";
 
 const TOOLS: { id: Tool; icon: any; label: string }[] = [
-  { id: "select", icon: MousePointer2, label: "Select / move" },
+  { id: "select", icon: MousePointer2, label: "Select (drag empty space to pan the view)" },
+  { id: "move", icon: Move, label: "Move — drag never pans the view; drag or arrow keys move the selected element(s)" },
   { id: "wall", icon: PencilRuler, label: "Draw wall (Enter / Finish to complete)" },
   { id: "room", icon: Square, label: "Draw room (Enter / Finish to complete)" },
   { id: "door", icon: DoorOpen, label: "Place a door" },
